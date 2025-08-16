@@ -206,14 +206,26 @@ def scheduled_search():
 
 # Initialize scheduler
 scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kathmandu'))
-# Schedule the job to run every day at 11:00 AM Nepal time
-scheduler.add_job(
-    scheduled_search,
-    CronTrigger(hour=11, minute=0, timezone='Asia/Kathmandu'),
-    id='daily_deerwalk_search',
-    name='Run Deerwalk search daily at 11:00 AM',
-    replace_existing=True
-)
+
+# Schedule the job to run at 11:00 AM, 3:00 PM, and 6:00 PM Nepal time
+scheduled_times = [
+    {'id': 'morning_search', 'hour': 11, 'minute': 0, 'name': '11:00 AM'},
+    {'id': 'afternoon_search', 'hour': 15, 'minute': 0, 'name': '3:00 PM'},
+    {'id': 'evening_search', 'hour': 18, 'minute': 0, 'name': '6:00 PM'}
+]
+
+for time_slot in scheduled_times:
+    scheduler.add_job(
+        scheduled_search,
+        CronTrigger(
+            hour=time_slot['hour'],
+            minute=time_slot['minute'],
+            timezone='Asia/Kathmandu'
+        ),
+        id=time_slot['id'],
+        name=f'Run Deerwalk search at {time_slot["name"]} NPT',
+        replace_existing=True
+    )
 
 # Start the scheduler when the app starts
 if not scheduler.running:
