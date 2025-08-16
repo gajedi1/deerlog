@@ -25,23 +25,32 @@
             if (!appName) return;
             
             const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = '<p>Searching...</p>';
+            resultDiv.innerHTML = '<div class="loading">Searching...</div>';
             
             try {
-                const response = await fetch('/search', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ app_name: appName })
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Server error: ${response.status} ${response.statusText}\n${errorText}`);
+                // First check if server is alive
+                let response;
+                try {
+                    response = await fetch('/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ app_name: appName })
+                    });
+                } catch (networkError) {
+                    throw new Error('Could not connect to the server. Please check your internet connection and try again.');
                 }
-                
+
+                // Check if response is HTML error page
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('text/html') && !response.ok) {
+                    const errorText = await response.text();
+                    console.error('HTML error response:', errorText.substring(0, 200)); // Log first 200 chars
+                    throw new Error('Server error occurred. Please try again later.');
+                }
+
                 let data;
                 try {
                     data = await response.json();
@@ -49,35 +58,62 @@
                     console.error('JSON parse error:', jsonError);
                     throw new Error('Invalid response from server. Please try again.');
                 }
+
+                // Handle API errors
+                if (!response.ok) {
+                    const errorMsg = data?.error || `Server error: ${response.status} ${response.statusText}`;
+                    throw new Error(errorMsg);
+                }
+
+                // Check if we have valid data
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Invalid data received from server');
+                }
+
+                // Build the result HTML
+                let html = '<div class="result-container">';
                 
-                if (data && data.error) {
-                    throw new Error(data.error);
+                if (data.error) {
+                    html += `
+                        <div class="error">
+                            <p><strong>Error:</strong> ${data.error}</p>
+                        </div>`;
+                } else {
+                    html += `
+                        <h2>${data.title || 'N/A'}</h2>
+                        <p><strong>Developer:</strong> ${data.developer || 'N/A'}</p>
+                        <p><strong>Installs:</strong> ${data.installs || 'N/A'}</p>`;
+                    
+                    if (data.realInstalls) {
+                        html += `<p><strong>Real Installs:</strong> ${data.realInstalls.toLocaleString()}</p>`;
+                    }
+                    
+                    html += `<p><strong>Score:</strong> ${data.score || 'N/A'}`;
+                    
+                    if (data.ratings) {
+                        html += ` (${data.ratings.toLocaleString()} ratings)`;
+                    }
+                    
+                    html += `</p>`;
                 }
                 
-                let html = `
-                    <h2>${data.title}</h2>
-                    <p><strong>Developer:</strong> ${data.developer}</p>
-                    <p><strong>Installs:</strong> ${data.installs}</p>
-                `;
-                
-                if (data.realInstalls) {
-                    html += `<p><strong>Real Installs:</strong> ${data.realInstalls.toLocaleString()}</p>`;
-                }
-                
-                html += `<p><strong>Score:</strong> ${data.score} (${data.ratings.toLocaleString()} ratings)</p>`;
+                html += '</div>';
                 resultDiv.innerHTML = html;
                 
             } catch (error) {
                 console.error('Search error:', error);
                 let errorMessage = error.message || 'An unknown error occurred';
-                // Handle HTML error responses
-                if (errorMessage.startsWith('Server error:') && errorMessage.includes('<!DOCTYPE html>')) {
-                    errorMessage = 'Server error: Please check the server logs for more details';
+                
+                // Clean up error message if it contains HTML
+                if (errorMessage.includes('<!DOCTYPE') || errorMessage.includes('<html>')) {
+                    errorMessage = 'Server returned an error. Please try again later.';
                 }
-                resultDiv.innerHTML = `<div class="error">
-                    <p><strong>Error:</strong> ${errorMessage}</p>
-                    <p>Please try again or check the logs for more information.</p>
-                </div>`;
+                
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p><strong>Error:</strong> ${errorMessage}</p>
+                        <p>Please try again or check the logs for more information.</p>
+                    </div>`;
             }
         }
         
