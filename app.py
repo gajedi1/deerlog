@@ -18,13 +18,19 @@ if not os.path.exists('logs'):
 flask_app = Flask(__name__)
 
 # Configure logging
-log_handler = RotatingFileHandler('logs/app.log', maxBytes=10240, backupCount=10)
-log_handler.setFormatter(logging.Formatter(
-    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-))
-log_handler.setLevel(logging.INFO)
-flask_app.logger.addHandler(log_handler)
-flask_app.logger.setLevel(logging.INFO)
+if not os.environ.get('RENDER'):  # Only log to file if not in production
+    log_handler = RotatingFileHandler('logs/app.log', maxBytes=10240, backupCount=10)
+    log_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    log_handler.setLevel(logging.INFO)
+    flask_app.logger.addHandler(log_handler)
+    flask_app.logger.setLevel(logging.INFO)
+else:  # In production, log to stderr
+    logging.basicConfig(level=logging.INFO)
+    flask_app.logger.handlers = logging.getLogger('gunicorn.error').handlers
+    flask_app.logger.setLevel(logging.INFO)
+
 flask_app.logger.info('App startup')
 
 def log_search(app_name, result):
@@ -299,39 +305,47 @@ def scheduled_search():
         except Exception as e:
             flask_app.logger.error(f"Error in scheduled search: {str(e)}")
 
-# Initialize scheduler
-scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kathmandu'))
+# Initialize scheduler only if not in a Gunicorn worker or if it's the main process
+if not os.environ.get('GUNICORN') or __name__ == '__main__':
+    scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kathmandu'))
 
-# Schedule the job to run at 11:00 AM, 3:00 PM, and 6:00 PM Nepal time
-scheduled_times = [
-    {'id': 'morning_search', 'hour': 11, 'minute': 0, 'name': '11:00 AM'},
-    {'id': 'afternoon_search', 'hour': 15, 'minute': 0, 'name': '3:00 PM'},
-    {'id': 'evening_search', 'hour': 18, 'minute': 0, 'name': '6:00 PM'}
-]
+    # Schedule the job to run at 11:00 AM, 3:00 PM, and 6:00 PM Nepal time
+    scheduled_times = [
+        {'id': 'morning_search', 'hour': 11, 'minute': 0, 'name': '11:00 AM'},
+        {'id': 'afternoon_search', 'hour': 15, 'minute': 0, 'name': '3:00 PM'},
+        {'id': 'evening_search', 'hour': 18, 'minute': 0, 'name': '6:00 PM'}
+    ]
 
-for time_slot in scheduled_times:
-    scheduler.add_job(
-        scheduled_search,
-        CronTrigger(
-            hour=time_slot['hour'],
-            minute=time_slot['minute'],
-            timezone='Asia/Kathmandu'
-        ),
-        id=time_slot['id'],
-        name=f'Run Deerwalk search at {time_slot["name"]} NPT',
-        replace_existing=True
-    )
+    for time_slot in scheduled_times:
+        scheduler.add_job(
+            scheduled_search,
+            CronTrigger(
+                hour=time_slot['hour'],
+                minute=time_slot['minute'],
+                timezone='Asia/Kathmandu'
+            ),
+            id=time_slot['id'],
+            name=f'Run Deerwalk search at {time_slot["name"]} NPT',
+            replace_existing=True
+        )
 
-# Start the scheduler when the app starts
-if not scheduler.running:
-    scheduler.start()
+    # Start the scheduler when the app starts
+    if not scheduler.running:
+        try:
+            scheduler.start()
+            flask_app.logger.info("Scheduler started successfully")
+        except Exception as e:
+            flask_app.logger.error(f"Error starting scheduler: {str(e)}")
 
 # For production with gunicorn
 app = flask_app
 
 if __name__ == '__main__':
-    # Run the scheduled search immediately for testing
-    # Comment this out in production
-    # scheduled_search()
-    
-    flask_app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    if os.environ.get('RENDER'):
+        # In production, use waitress server
+        from waitress import serve
+        serve(flask_app, host='0.0.0.0', port=port)
+    else:
+        # In development, use Flask's built-in server
+        flask_app.run(debug=True, host='0.0.0.0', port=port)
