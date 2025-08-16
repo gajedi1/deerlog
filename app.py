@@ -18,20 +18,34 @@ if not os.path.exists('logs'):
 flask_app = Flask(__name__)
 
 # Configure logging
-if not os.environ.get('RENDER'):  # Only log to file if not in production
-    log_handler = RotatingFileHandler('logs/app.log', maxBytes=10240, backupCount=10)
-    log_handler.setFormatter(logging.Formatter(
+if os.environ.get('RENDER'):  # Production environment
+    # In production, log to stderr with JSON format
+    logging.basicConfig(
+        level=logging.INFO,
+        format='{"time": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}'
+    )
+    # Remove all handlers
+    for handler in flask_app.logger.handlers[:]:
+        flask_app.logger.removeHandler(handler)
+    # Add stream handler for stderr
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('{"time": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}'))
+    flask_app.logger.addHandler(handler)
+else:  # Development environment
+    # Create logs directory if it doesn't exist
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+    # Log to file in development
+    file_handler = RotatingFileHandler('logs/app.log', maxBytes=10240, backupCount=10)
+    file_handler.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
     ))
-    log_handler.setLevel(logging.INFO)
-    flask_app.logger.addHandler(log_handler)
-    flask_app.logger.setLevel(logging.INFO)
-else:  # In production, log to stderr
-    logging.basicConfig(level=logging.INFO)
-    flask_app.logger.handlers = logging.getLogger('gunicorn.error').handlers
-    flask_app.logger.setLevel(logging.INFO)
+    file_handler.setLevel(logging.INFO)
+    flask_app.logger.addHandler(file_handler)
 
-flask_app.logger.info('App startup')
+# Set log level
+flask_app.logger.setLevel(logging.INFO)
+flask_app.logger.info('Application started')
 
 def log_search(app_name, result):
     """Log search attempts and their results"""
@@ -45,9 +59,18 @@ def log_search(app_name, result):
     return log_entry
 
 def get_app_data(app_name):
+    """Fetch app data from Google Play Store with enhanced error handling"""
     try:
         if not app_name or not isinstance(app_name, str):
-            raise ValueError("Invalid app name provided")
+            flask_app.logger.error("Invalid app name provided")
+            return {"error": "Please provide a valid app name"}
+            
+        app_name = app_name.strip()
+        if not app_name:
+            flask_app.logger.error("Empty app name provided")
+            return {"error": "App name cannot be empty"}
+            
+        flask_app.logger.info(f"Fetching data for app: {app_name}")
             
         flask_app.logger.info(f"Searching for app: {app_name}")
         print(f"Searching for '{app_name}' on Google Play Store...")
@@ -182,6 +205,26 @@ def get_app_data(app_name):
 def index():
     return render_template('index.html')
 
+@flask_app.route('/health')
+def health_check():
+    """Health check endpoint for monitoring"""
+    try:
+        # Basic health check - can be expanded with more checks
+        status = {
+            'status': 'healthy',
+            'timestamp': datetime.utcnow().isoformat(),
+            'environment': 'production' if os.environ.get('RENDER') else 'development',
+            'version': '1.0.0'
+        }
+        return jsonify(status), 200
+    except Exception as e:
+        flask_app.logger.error(f"Health check failed: {str(e)}")
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
 @flask_app.route('/search', methods=['POST'])
 @flask_app.route('/logs')
 def view_logs():
@@ -248,26 +291,42 @@ def handle_generic_error(e):
 @flask_app.route('/search', methods=['POST'])
 def search_app():
     try:
+        flask_app.logger.info("Received search request")
+        
         if not request.is_json:
-            return jsonify({"error": "Request must be JSON"}), 400
+            error_msg = "Request must be JSON"
+            flask_app.logger.error(error_msg)
+            return jsonify({"error": error_msg}), 400
             
         data = request.get_json()
+        flask_app.logger.info(f"Request data: {data}")
+        
         if not data or 'app_name' not in data:
-            return jsonify({"error": "app_name is required"}), 400
+            error_msg = "app_name is required"
+            flask_app.logger.error(error_msg)
+            return jsonify({"error": error_msg}), 400
             
         app_name = data['app_name'].strip()
         if not app_name:
-            return jsonify({"error": "app_name cannot be empty"}), 400
-            
+            error_msg = "app_name cannot be empty"
+            flask_app.logger.error(error_msg)
+            return jsonify({"error": error_msg}), 400
+        
+        flask_app.logger.info(f"Searching for app: {app_name}")
         result = get_app_data(app_name)
+        
+        if 'error' in result:
+            flask_app.logger.error(f"Error in get_app_data: {result['error']}")
+            return jsonify({"error": result['error']}), 500
+            
+        flask_app.logger.info(f"Successfully retrieved data for {app_name}")
         log_search(app_name, result)
         return jsonify(result)
         
     except Exception as e:
-        flask_app.logger.error(f"Error in search_app: {str(e)}")
-        return jsonify({
-            "error": str(e) or "An error occurred while processing your request"
-        }), 500
+        error_msg = f"Unexpected error in search_app: {str(e)}"
+        flask_app.logger.error(error_msg, exc_info=True)
+        return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
 
 def scheduled_search():
     """Perform a scheduled search for Deerwalk"""
