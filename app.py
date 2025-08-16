@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, make_response
+from werkzeug.exceptions import HTTPException
 from google_play_scraper import search, app as get_app_details
 
 # Create logs directory if it doesn't exist
@@ -39,72 +40,137 @@ def log_search(app_name, result):
 
 def get_app_data(app_name):
     try:
+        if not app_name or not isinstance(app_name, str):
+            raise ValueError("Invalid app name provided")
+            
         flask_app.logger.info(f"Searching for app: {app_name}")
         print(f"Searching for '{app_name}' on Google Play Store...")
-        # Search with more results to find better matches
-        results = search(
-            app_name,
-            lang='en',
-            country='us',
-            n_hits=5  # Get more results to find the best match
-        )
+        
+        try:
+            # Search with more results to find better matches
+            results = search(
+                app_name,
+                lang='en',
+                country='us',
+                n_hits=5  # Get more results to find the best match
+            )
+        except Exception as e:
+            flask_app.logger.error(f"Search error for '{app_name}': {str(e)}")
+            return {
+                "error": f"Failed to search for app: {str(e)}",
+                "title": app_name,
+                "developer": "N/A",
+                "installs": "N/A",
+                "realInstalls": None,
+                "score": "N/A",
+                "ratings": 0
+            }
         
         if not results:
-            return {"error": "No results found for the app."}
+            return {
+                "error": f"No results found for '{app_name}'.",
+                "title": app_name,
+                "developer": "N/A",
+                "installs": "N/A",
+                "realInstalls": None,
+                "score": "N/A",
+                "ratings": 0
+            }
         
-        # Find the best matching app by title similarity
-        best_match = None
-        best_score = -1
-        app_name_lower = app_name.lower()
-        
-        for app in results:
-            title = app.get('title', '')
-            title_lower = title.lower()
+        try:
+            # Find the best matching app by title similarity
+            best_match = None
+            best_score = -1
+            app_name_lower = app_name.lower()
             
-            # Calculate a simple matching score
-            score = 0
-            if app_name_lower == title_lower:
-                score = 100  # Exact match
-            elif app_name_lower in title_lower:
-                score = 80 + (len(app_name_lower) / len(title_lower)) * 10  # Partial match
+            for app in results:
+                title = str(app.get('title', '')).strip()
+                if not title:
+                    continue
+                    
+                title_lower = title.lower()
+                
+                # Calculate a simple matching score
+                score = 0
+                if app_name_lower == title_lower:
+                    score = 100  # Exact match
+                elif app_name_lower in title_lower:
+                    score = 80 + (len(app_name_lower) / len(title_lower)) * 10  # Partial match
+                
+                # If this is a better match, update best_match
+                if score > best_score:
+                    best_score = score
+                    best_match = app
             
-            # If this is a better match, update best_match
-            if score > best_score:
-                best_score = score
-                best_match = app
-        
-        if not best_match:
-            best_match = results[0]  # Fallback to first result if no good match found
+            if not best_match:
+                best_match = results[0]  # Fallback to first result if no good match found
+                
+            app_id = best_match.get('appId')
+            if not app_id:
+                raise ValueError("No app ID found in search results")
+                
+            app_title = best_match.get('title', app_name)
+            print(f"Found best matching app: {app_title} (ID: {app_id})")
             
-        app_id = best_match['appId']
-        print(f"Found best matching app: {best_match.get('title')} (ID: {app_id})")
-        
-        app_details = get_app_details(
-            app_id,
-            lang='en',
-            country='us'
-        )
-        
-        installs = app_details.get('installs', 'Not available')
-        real_installs = app_details.get('realInstalls')
-        
-        score = app_details.get('score', 'N/A')
-        ratings = app_details.get('ratings', 0)
-        if ratings is None:
-            ratings = 0
+            try:
+                app_details = get_app_details(
+                    app_id,
+                    lang='en',
+                    country='us'
+                )
+                
+                installs = app_details.get('installs', 'Not available')
+                real_installs = app_details.get('realInstalls')
+                score = app_details.get('score', 'N/A')
+                ratings = app_details.get('ratings', 0) or 0
+                
+                return {
+                    "title": app_details.get('title', app_title),
+                    "developer": app_details.get('developer', 'N/A'),
+                    "installs": installs,
+                    "realInstalls": real_installs,
+                    "score": score,
+                    "ratings": ratings
+                }
+                
+            except Exception as e:
+                error_msg = f"Error getting app details: {str(e)}"
+                flask_app.logger.error(error_msg)
+                return {
+                    "error": error_msg,
+                    "title": app_title,
+                    "developer": best_match.get('developer', 'N/A'),
+                    "installs": "N/A",
+                    "realInstalls": None,
+                    "score": "N/A",
+                    "ratings": 0
+                }
+                
+        except Exception as e:
+            error_msg = f"Error processing search results: {str(e)}"
+            flask_app.logger.error(error_msg)
+            return {
+                "error": error_msg,
+                "title": app_name,
+                "developer": "N/A",
+                "installs": "N/A",
+                "realInstalls": None,
+                "score": "N/A",
+                "ratings": 0
+            }
             
-        return {
-            "title": app_details.get('title', 'N/A'),
-            "developer": app_details.get('developer', 'N/A'),
-            "installs": installs,
-            "realInstalls": real_installs,
-            "score": score,
-            "ratings": ratings
-        }
-        
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        return {"error": str(e)}
+        error_msg = f"Unexpected error: {str(e)}"
+        flask_app.logger.error(error_msg)
+        return {
+            "error": error_msg,
+            "title": app_name if isinstance(app_name, str) else "Unknown App",
+            "developer": "N/A",
+            "installs": "N/A",
+            "realInstalls": None,
+            "score": "N/A",
+            "ratings": 0
+        }
 
 @flask_app.route('/')
 def index():
@@ -158,15 +224,44 @@ def clear_logs():
         flask_app.logger.error(f"Error clearing logs: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@flask_app.errorhandler(HTTPException)
+def handle_http_error(e):
+    return jsonify({
+        "error": e.description,
+        "code": e.code
+    }), e.code
+
+@flask_app.errorhandler(Exception)
+def handle_generic_error(e):
+    flask_app.logger.error(f"Unhandled exception: {str(e)}")
+    return jsonify({
+        "error": "An internal server error occurred",
+        "code": 500
+    }), 500
+
 @flask_app.route('/search', methods=['POST'])
 def search_app():
-    app_name = request.json.get('app_name', '')
-    if not app_name:
-        return jsonify({"error": "App name is required"}), 400
-    
-    result = get_app_data(app_name)
-    log_search(app_name, result)
-    return jsonify(result)
+    try:
+        if not request.is_json:
+            return jsonify({"error": "Request must be JSON"}), 400
+            
+        data = request.get_json()
+        if not data or 'app_name' not in data:
+            return jsonify({"error": "app_name is required"}), 400
+            
+        app_name = data['app_name'].strip()
+        if not app_name:
+            return jsonify({"error": "app_name cannot be empty"}), 400
+            
+        result = get_app_data(app_name)
+        log_search(app_name, result)
+        return jsonify(result)
+        
+    except Exception as e:
+        flask_app.logger.error(f"Error in search_app: {str(e)}")
+        return jsonify({
+            "error": str(e) or "An error occurred while processing your request"
+        }), 500
 
 def scheduled_search():
     """Perform a scheduled search for Deerwalk"""
