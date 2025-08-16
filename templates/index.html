@@ -32,15 +32,26 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({ app_name: appName })
                 });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server error: ${response.status} ${response.statusText}\n${errorText}`);
+                }
                 
-                const data = await response.json();
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    console.error('JSON parse error:', jsonError);
+                    throw new Error('Invalid response from server. Please try again.');
+                }
                 
-                if (data.error) {
-                    resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
-                    return;
+                if (data && data.error) {
+                    throw new Error(data.error);
                 }
                 
                 let html = `
@@ -57,7 +68,16 @@
                 resultDiv.innerHTML = html;
                 
             } catch (error) {
-                resultDiv.innerHTML = `<p class="error">An error occurred: ${error.message}</p>`;
+                console.error('Search error:', error);
+                let errorMessage = error.message || 'An unknown error occurred';
+                // Handle HTML error responses
+                if (errorMessage.startsWith('Server error:') && errorMessage.includes('<!DOCTYPE html>')) {
+                    errorMessage = 'Server error: Please check the server logs for more details';
+                }
+                resultDiv.innerHTML = `<div class="error">
+                    <p><strong>Error:</strong> ${errorMessage}</p>
+                    <p>Please try again or check the logs for more information.</p>
+                </div>`;
             }
         }
         
