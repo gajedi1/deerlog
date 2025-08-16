@@ -22,35 +22,67 @@
     <script>
         async function searchApp() {
             const appName = document.getElementById('searchInput').value.trim();
-            if (!appName) return;
-            
             const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = '<div class="loading">Searching...</div>';
+            
+            if (!appName) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p>Please enter an app name to search</p>
+                    </div>`;
+                return;
+            }
+            
+            // Show loading state
+            resultDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Searching for "${appName}" on Google Play Store...</p>
+                </div>`;
             
             try {
-                // First check if server is alive
                 let response;
                 try {
+                    const startTime = Date.now();
                     response = await fetch('/search', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Accept': 'application/json'
                         },
-                        body: JSON.stringify({ app_name: appName })
+                        body: JSON.stringify({ app_name: appName }),
+                        signal: AbortSignal.timeout(30000) // 30 second timeout
                     });
+                    const endTime = Date.now();
+                    console.log(`Request took ${endTime - startTime}ms`);
                 } catch (networkError) {
-                    throw new Error('Could not connect to the server. Please check your internet connection and try again.');
+                    if (networkError.name === 'AbortError') {
+                        throw new Error('Request timed out. The server is taking too long to respond.');
+                    } else {
+                        throw new Error('Could not connect to the server. Please check your internet connection and try again.');
+                    }
                 }
 
-                // Check if response is HTML error page
-                const contentType = response.headers.get('content-type') || '';
-                if (contentType.includes('text/html') && !response.ok) {
-                    const errorText = await response.text();
-                    console.error('HTML error response:', errorText.substring(0, 200)); // Log first 200 chars
-                    throw new Error('Server error occurred. Please try again later.');
+                // Check response status first
+                if (!response.ok) {
+                    const contentType = response.headers.get('content-type') || '';
+                    
+                    // Handle HTML error pages
+                    if (contentType.includes('text/html')) {
+                        const errorText = await response.text();
+                        console.error('HTML error response:', errorText.substring(0, 200));
+                        throw new Error('Server error occurred. Please try again later.');
+                    }
+                    
+                    // Try to get JSON error if available
+                    try {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Server error: ${response.status}`);
+                    } catch (e) {
+                        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                    }
                 }
 
+                // Parse JSON response
                 let data;
                 try {
                     data = await response.json();
@@ -59,60 +91,50 @@
                     throw new Error('Invalid response from server. Please try again.');
                 }
 
-                // Handle API errors
-                if (!response.ok) {
-                    const errorMsg = data?.error || `Server error: ${response.status} ${response.statusText}`;
-                    throw new Error(errorMsg);
-                }
-
                 // Check if we have valid data
                 if (!data || typeof data !== 'object') {
                     throw new Error('Invalid data received from server');
                 }
 
-                // Build the result HTML
-                let html = '<div class="result-container">';
-                
+                // Handle API errors in the response
                 if (data.error) {
-                    html += `
-                        <div class="error">
-                            <p><strong>Error:</strong> ${data.error}</p>
-                        </div>`;
-                } else {
-                    html += `
+                    throw new Error(data.error);
+                }
+
+                // Build the result HTML
+                const html = `
+                    <div class="result-container">
                         <h2>${data.title || 'N/A'}</h2>
                         <p><strong>Developer:</strong> ${data.developer || 'N/A'}</p>
-                        <p><strong>Installs:</strong> ${data.installs || 'N/A'}</p>`;
-                    
-                    if (data.realInstalls) {
-                        html += `<p><strong>Real Installs:</strong> ${data.realInstalls.toLocaleString()}</p>`;
-                    }
-                    
-                    html += `<p><strong>Score:</strong> ${data.score || 'N/A'}`;
-                    
-                    if (data.ratings) {
-                        html += ` (${data.ratings.toLocaleString()} ratings)`;
-                    }
-                    
-                    html += `</p>`;
-                }
+                        <p><strong>Installs:</strong> ${data.installs || 'N/A'}</p>
+                        ${data.realInstalls ? `<p><strong>Real Installs:</strong> ${data.realInstalls.toLocaleString()}</p>` : ''}
+                        <p><strong>Score:</strong> ${data.score || 'N/A'}${data.ratings ? ` (${data.ratings.toLocaleString()} ratings)` : ''}</p>
+                    </div>`;
                 
-                html += '</div>';
                 resultDiv.innerHTML = html;
                 
             } catch (error) {
                 console.error('Search error:', error);
                 let errorMessage = error.message || 'An unknown error occurred';
                 
-                // Clean up error message if it contains HTML
-                if (errorMessage.includes('<!DOCTYPE') || errorMessage.includes('<html>')) {
-                    errorMessage = 'Server returned an error. Please try again later.';
+                // Clean up error message
+                let displayMessage = errorMessage;
+                if (displayMessage.includes('<!DOCTYPE') || displayMessage.includes('<html>')) {
+                    displayMessage = 'Server returned an error. Please try again later.';
                 }
+                
+                // Remove any HTML tags from the error message
+                displayMessage = displayMessage.replace(/<[^>]*>?/gm, '');
                 
                 resultDiv.innerHTML = `
                     <div class="error">
-                        <p><strong>Error:</strong> ${errorMessage}</p>
-                        <p>Please try again or check the logs for more information.</p>
+                        <p><strong>Error:</strong> ${displayMessage}</p>
+                        <p>If the problem persists, please contact support with the following details:</p>
+                        <ul>
+                            <li>App Name: ${appName || 'N/A'}</li>
+                            <li>Time: ${new Date().toLocaleString()}</li>
+                            <li>Error: ${displayMessage.substring(0, 100)}${displayMessage.length > 100 ? '...' : ''}</li>
+                        </ul>
                     </div>`;
             }
         }
