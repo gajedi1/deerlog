@@ -97,21 +97,7 @@
                 }
 
                 // Handle API errors in the response
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                // Build the result HTML
-                const html = `
-                    <div class="result-container">
-                        <h2>${data.title || 'N/A'}</h2>
-                        <p><strong>Developer:</strong> ${data.developer || 'N/A'}</p>
-                        <p><strong>Installs:</strong> ${data.installs || 'N/A'}</p>
-                        ${data.realInstalls ? `<p><strong>Real Installs:</strong> ${data.realInstalls.toLocaleString()}</p>` : ''}
-                        <p><strong>Score:</strong> ${data.score || 'N/A'}${data.ratings ? ` (${data.ratings.toLocaleString()} ratings)` : ''}</p>
-                    </div>`;
-                
-                resultDiv.innerHTML = html;
+                displayResult(data);
                 
             } catch (error) {
                 console.error('Search error:', error);
