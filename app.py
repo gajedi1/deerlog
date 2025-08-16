@@ -59,7 +59,15 @@ def log_search(app_name, result):
     return log_entry
 
 def get_app_data(app_name):
-    """Fetch app data from Google Play Store with enhanced error handling"""
+    """
+    Fetch detailed app data from Google Play Store
+    
+    Args:
+        app_name (str): Name of the app to search for
+        
+    Returns:
+        dict: App details or error information
+    """
     try:
         if not app_name or not isinstance(app_name, str):
             flask_app.logger.error("Invalid app name provided")
@@ -70,7 +78,72 @@ def get_app_data(app_name):
             flask_app.logger.error("Empty app name provided")
             return {"error": "App name cannot be empty"}
             
-        flask_app.logger.info(f"Fetching data for app: {app_name}")
+        flask_app.logger.info(f"Searching for app: {app_name}")
+        
+        try:
+            # First, search for the app to get its ID
+            results = search(
+                app_name,
+                lang='en',
+                country='us',
+                n_hits=3  # Get top 3 results for better matching
+            )
+            
+            if not results:
+                error_msg = f"No results found for app: {app_name}"
+                flask_app.logger.warning(error_msg)
+                return {"error": "App not found on Google Play Store"}
+                
+            # Get the most relevant result (first one)
+            app_id = results[0]['appId']
+            flask_app.logger.info(f"Found app ID: {app_id}")
+            
+            # Get detailed app information
+            app_details = app(
+                app_id,
+                lang='en',
+                country='us'
+            )
+            
+            if not app_details:
+                error_msg = f"No details found for app ID: {app_id}"
+                flask_app.logger.error(error_msg)
+                return {"error": "Could not fetch app details"}
+                
+            # Extract and format the data we need
+            result = {
+                'title': app_details.get('title', 'N/A'),
+                'appId': app_id,
+                'developer': app_details.get('developer', 'N/A'),
+                'description': app_details.get('description', ''),
+                'installs': app_details.get('installs', 'N/A'),
+                'realInstalls': app_details.get('realInstalls'),
+                'score': app_details.get('score', 'N/A'),
+                'ratings': app_details.get('ratings', 0) or 0,
+                'reviews': app_details.get('reviews', 0) or 0,
+                'price': app_details.get('price'),
+                'free': app_details.get('free', True),
+                'url': f"https://play.google.com/store/apps/details?id={app_id}",
+                'icon': app_details.get('icon', ''),
+                'genre': app_details.get('genre', ''),
+                'updated': app_details.get('updated'),
+                'version': app_details.get('version', 'N/A'),
+                'size': app_details.get('size', 'N/A'),
+                'contentRating': app_details.get('contentRating', 'N/A'),
+                'screenshots': app_details.get('screenshots', []),
+                'recentChanges': app_details.get('recentChanges', '')
+            }
+            
+            flask_app.logger.info(f"Successfully retrieved data for: {result['title']}")
+            return result
+            
+        except Exception as e:
+            error_msg = f"Error fetching app data: {str(e)}"
+            flask_app.logger.error(error_msg, exc_info=True)
+            return {
+                "error": "Failed to fetch app data from Google Play Store",
+                "details": str(e) if os.environ.get('FLASK_DEBUG') == '1' else None
+            }
             
         flask_app.logger.info(f"Searching for app: {app_name}")
         print(f"Searching for '{app_name}' on Google Play Store...")
