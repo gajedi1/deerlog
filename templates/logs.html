@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Search Logs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .log-container {
+            margin-top: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        .log-entry {
+            background: white;
+            border-left: 4px solid #4CAF50;
+            margin: 10px 0;
+            padding: 10px 15px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border-radius: 0 4px 4px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .log-entry.error {
+            border-left-color: #f44336;
+        }
+        .log-entry.warning {
+            border-left-color: #ff9800;
+        }
+        .log-entry.debug {
+            border-left-color: #2196F3;
+        }
+        .log-date {
+            font-size: 1.2em;
+            color: #333;
+            margin: 20px 0 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .log-timestamp {
+            color: #666;
+            font-size: 0.9em;
+            margin-right: 10px;
+        }
+        .log-level {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            text-transform: uppercase;
+        }
+        .log-level.INFO { 
+            background-color: #e8f5e9;
+            color: #4CAF50;
+        }
+        .log-level.WARNING { 
+            background-color: #fff8e1;
+            color: #ff9800;
+        }
+        .log-level.ERROR { 
+            background-color: #ffebee;
+            color: #f44336;
+        }
+        .log-level.DEBUG { 
+            background-color: #e3f2fd;
+            color: #2196F3;
+        }
+        .search-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .result-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 3px solid #4CAF50;
+            background: #f8f9fa;
+        }
+        .result-item.error {
+            border-left-color: #f44336;
+        }
+        .result-title {
+            font-weight: bold;
+            color: #1a73e8;
+            margin-bottom: 5px;
+        }
+        .result-meta {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .tab-container {
+            margin: 20px 0;
+        }
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+        }
+        .tab-button.active {
+            border-bottom: 3px solid #1a73e8;
+            color: #1a73e8;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Application Logs</h1>
+            <a href="/" class="view-logs">
+                <i class="fas fa-arrow-left"></i> Back to Search
+            </a>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="showTab('app-logs')">Application Logs</button>
+                <button class="tab-button" onclick="showTab('search-results')">Daily Search Results</button>
+            </div>
+
+            <div id="app-logs" class="tab-content active">
+                <div class="controls">
+                    <button onclick="clearLogs()" class="btn btn-clear">
+                        <i class="fas fa-trash"></i> Clear Application Logs
+                    </button>
+                </div>
+
+                <div class="log-container">
+                    {% if app_logs %}
+                        {% for log in app_logs %}
+                            {% set log_parts = log.split(' ', 3) %}
+                            {% if log_parts|length >= 4 %}
+                                <div class="log-entry {{ 'error' if 'ERROR' in log_parts[2] else 'warning' if 'WARNING' in log_parts[2] else 'debug' if 'DEBUG' in log_parts[2] else '' }}">
+                                    <div class="log-header">
+                                        <span class="log-timestamp">{{ log_parts[0] }} {{ log_parts[1] }}</span>
+                                        <span class="log-level {{ log_parts[2] }}">{{ log_parts[2] }}</span>
+                                    </div>
+                                    <div class="log-message">{{ log_parts[3:]|join(' ') }}</div>
+                                </div>
+                            {% else %}
+                                <div class="log-entry">{{ log }}</div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p>No application logs found.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div id="search-results" class="tab-content">
+                <div class="search-results">
+                    {% if daily_logs %}
+                        {% for date, searches in daily_logs.items() %}
+                            <h3 class="log-date">
+                                <i class="far fa-calendar-alt"></i> {{ date }}
+                                <span class="badge">{{ searches|length }} search{{ 'es' if searches|length != 1 else '' }}</span>
+                            </h3>
+                            
+                            {% for search in searches %}
+                                <div class="search-result">
+                                    <div class="result-meta">
+                                        <i class="far fa-clock"></i> {{ search.timestamp }}
+                                    </div>
+                                    
+                                    {% if 'error' in search.result %}
+                                        <div class="result-item error">
+                                            <div class="result-title">Error</div>
+                                            <div>{{ search.result.error }}</div>
+                                        </div>
+                                    {% else %}
+                                        <div class="result-item">
+                                            <div class="result-title">{{ search.result.title }}</div>
+                                            <div class="result-meta">
+                                                <span><i class="fas fa-user-tie"></i> {{ search.result.developer }}</span> |
+                                                <span><i class="fas fa-download"></i> {{ search.result.installs }}</span> |
+                                                <span><i class="fas fa-star"></i> {{ search.result.score }} ({{ search.result.ratings }} ratings)</span>
+                                            </div>
+                                            {% if search.result.realInstalls %}
+                                                <div class="result-meta">
+                                                    <i class="fas fa-chart-line"></i> Real Installs: {{ search.result.realInstalls|number_format }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <p>No search results found. The first automated search will run at 11:00 AM Nepal time.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Deactivate all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Activate the selected tab and button
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            // Save the active tab to localStorage
+            localStorage.setItem('activeLogTab', tabId);
+        }
+        
+        function clearLogs() {
+            if (confirm('Are you sure you want to clear all application logs? This cannot be undone.')) {
+                fetch('/clear_logs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const logContainer = document.querySelector('#app-logs .log-container');
+                        logContainer.innerHTML = '<div class="log-entry">Application logs have been cleared.</div>';
+                        
+                        // Show a temporary success message
+                        const successMsg = document.createElement('div');
+                        successMsg.className = 'alert alert-success';
+                        successMsg.textContent = 'Application logs cleared successfully';
+                        document.querySelector('#app-logs').prepend(successMsg);
+                        
+                        // Remove the message after 3 seconds
+                        setTimeout(() => {
+                            successMsg.remove();
+                        }, 3000);
+                    } else {
+                        alert('Error clearing logs: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error clearing logs. Check console for details.');
+                });
+            }
+        }
+
+        // Restore the active tab from localStorage when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const activeTab = localStorage.getItem('activeLogTab') || 'app-logs';
+            const tabButton = document.querySelector(`.tab-button[onclick*="${activeTab}"]`);
+            if (tabButton) {
+                tabButton.click();
+            }
+            
+            // Auto-scroll to bottom of logs
+            const logContainers = document.querySelectorAll('.log-container');
+            logContainers.forEach(container => {
+                container.scrollTop = container.scrollHeight;
+            });
+        });
+        
+        // Format numbers with commas
+        Number.prototype.numberFormat = function() {
+            return this.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        };
+    </script>
+</body>
+</html>
