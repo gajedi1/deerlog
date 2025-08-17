@@ -338,24 +338,111 @@
                 searchApp();
             }
         });
+        
+        // Show/hide manual search modal
+        function showManualSearchModal() {
+            const modal = new bootstrap.Modal(document.getElementById('manualSearchModal'));
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('manualSearchStatus').classList.add('d-none');
+            modal.show();
+        }
+        
+        // Perform manual search with password
+        async function performManualSearch() {
+            const password = document.getElementById('passwordInput').value.trim();
+            const statusElement = document.getElementById('manualSearchStatus');
+            const spinner = document.getElementById('manualSearchSpinner');
+            
+            if (!password) {
+                showToast('Please enter a password', 'danger');
+                return;
+            }
+            
+            // Show loading state
+            spinner.classList.remove('d-none');
+            statusElement.classList.add('d-none');
+            
+            try {
+                const formData = new FormData();
+                formData.append('password', password);
+                
+                const response = await fetch('/manual_search', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    statusElement.className = 'alert alert-success';
+                    statusElement.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i>
+                        ${result.message || 'Data updated successfully'}
+                        <div class="small text-muted mt-1">${result.timestamp || ''}</div>
+                    `;
+                    
+                    // Refresh the page after a short delay to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    throw new Error(result.error || 'Failed to update data');
+                }
+            } catch (error) {
+                console.error('Manual search error:', error);
+                statusElement.className = 'alert alert-danger';
+                statusElement.innerHTML = `
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    ${error.message || 'An error occurred while updating data'}
+                `;
+            } finally {
+                statusElement.classList.remove('d-none');
+                spinner.classList.add('d-none');
+            }
+        }
+        
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type} border-0`;
+            toast.innerHTML = `
+                <div class="d-inline-flex flex-grow-1">
+                    <i class="fas fa-${type === 'info' ? 'info-circle' : type === 'danger' ? 'exclamation-circle' : 'check-circle'} me-2"></i>
+                    ${message}
+                </div>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
     </script>
     <div id="loading" class="loading" style="display: none;">
         <div class="spinner"></div>
         <p>Searching the Play Store...</p>
     </div>
     
-    <div class="footer-container">
-        <footer class="text-center text-muted py-4">
-            <div class="container">
-                <p class="mb-0">
-                    Made with <i class="fas fa-heart text-danger"></i> by Samir Ghimire
-                    <span class="mx-2">•</span>
-                    <a href="#" class="text-decoration-none" onclick="searchDeerwalk()">
-                        <i class="fas fa-search"></i> Search Deerwalk
-                    </a>
-                </p>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4 class="mb-0"><i class="fas fa-search me-2"></i>Play Store Search</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="search-container d-flex justify-content-center">
+                            <div class="input-group" style="max-width: 500px;">
+                                <input type="text" id="searchInput" class="form-control" placeholder="Search for Deerwalk" value="Deerwalk" disabled>
+                                <button class="btn btn-primary" type="button" onclick="searchApp()">
+                                    <i class="fas fa-search me-2"></i>Search Deerwalk
+                                </button>
+                            </div>
+                        </div>
+                        <div id="result" class="mt-4 text-start"></div>
+                    </div>
+                </div>
             </div>
-        </footer>
+        </div>
     </div>
     
     <style>

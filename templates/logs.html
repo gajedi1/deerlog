@@ -322,6 +322,13 @@
                 <h1 class="h3 mb-0 text-gray-800">
                     <i class="fas fa-search-location text-primary me-2"></i>App Search Monitor
                 </h1>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="showManualSearchModal()">
+                    <i class="fas fa-sync-alt me-2"></i>Manual Update
+                </button>
+            </div>
+            <div>
                 <p class="text-muted mb-0">Track and analyze app search results over time</p>
             </div>
             <div class="d-flex align-items-center">
@@ -506,6 +513,33 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Search Modal -->
+    <div class="modal fade" id="manualSearchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Manual Update</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>This will manually fetch the latest data for Deerwalk and log it.</p>
+                    <div class="mb-3">
+                        <label for="passwordInput" class="form-label">Enter password to continue:</label>
+                        <input type="password" class="form-control" id="passwordInput" required>
+                    </div>
+                    <div id="manualSearchStatus" class="alert d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="performManualSearch()">
+                        <span id="manualSearchSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Update Now
+                    </button>
                 </div>
             </div>
         </div>
@@ -775,48 +809,113 @@
             return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
         
-        // Handle export button click
-        document.getElementById('exportBtn').addEventListener('click', function() {
+        // Show/hide manual search modal
+        function showManualSearchModal() {
+            const modal = new bootstrap.Modal(document.getElementById('manualSearchModal'));
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('manualSearchStatus').classList.add('d-none');
+            modal.show();
+        }
+        
+        // Perform manual search with password
+        async function performManualSearch() {
+            const password = document.getElementById('passwordInput').value.trim();
+            const statusElement = document.getElementById('manualSearchStatus');
+            const spinner = document.getElementById('manualSearchSpinner');
+            
+            if (!password) {
+                showToast('Please enter a password', 'danger');
+                return;
+            }
+            
             // Show loading state
-            const icon = this.querySelector('i');
-            const originalIcon = icon.className;
-            const originalText = this.innerHTML;
+            spinner.classList.remove('d-none');
+            statusElement.classList.add('d-none');
             
-            icon.className = 'fas fa-spinner fa-spin me-1';
-            this.disabled = true;
-            
-            // Make API request to export data
-            fetch('/logs/export/real_installs')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Export failed');
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    // Create download link
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = `real_installs_export_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    
-                    // Show success message
-                    showToast('Export completed successfully!', 'success');
-                })
-                .catch(error => {
-                    console.error('Export error:', error);
-                    showToast('Failed to export data', 'danger');
-                })
-                .finally(() => {
-                    // Restore button state
-                    icon.className = originalIcon;
-                    this.innerHTML = originalText;
-                    this.disabled = false;
+            try {
+                const formData = new FormData();
+                formData.append('password', password);
+                
+                const response = await fetch('/manual_search', {
+                    method: 'POST',
+                    body: formData
                 });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    statusElement.className = 'alert alert-success';
+                    statusElement.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i>
+                        ${result.message || 'Data updated successfully'}
+                        <div class="small text-muted mt-1">${result.timestamp || ''}</div>
+                    `;
+                    
+                    // Refresh the page after a short delay to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    throw new Error(result.error || 'Failed to update data');
+                }
+            } catch (error) {
+                console.error('Manual search error:', error);
+                statusElement.className = 'alert alert-danger';
+                statusElement.innerHTML = `
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    ${error.message || 'An error occurred while updating data'}
+                `;
+            } finally {
+                statusElement.classList.remove('d-none');
+                spinner.classList.add('d-none');
+            }
+        }
+        
+        // Handle export button click with improved error handling
+        document.getElementById('exportBtn').addEventListener('click', async function() {
+            const exportBtn = this;
+            const icon = exportBtn.querySelector('i');
+            const originalIconClass = icon.className;
+            const originalText = exportBtn.innerHTML;
+            
+            try {
+                // Show loading state
+                icon.className = 'fas fa-spinner fa-spin me-2';
+                exportBtn.disabled = true;
+                
+                const response = await fetch('/logs/export/real_installs');
+                
+                if (response.status === 404) {
+                    throw new Error('No data available to export');
+                }
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error || 'Failed to export data');
+                }
+                
+                // Create a download link for the exported file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `real_installs_export_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showToast('Export completed successfully', 'success');
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast(error.message || 'Error exporting data', 'danger');
+            } finally {
+                // Reset button state
+                if (icon) icon.className = originalIconClass;
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = originalText;
+            }
         });
         
         // Format real installs numbers on page load and setup copy buttons
