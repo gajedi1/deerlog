@@ -48,7 +48,7 @@ atexit.register(lambda: scheduler.shutdown())
 def log_installs(app_name, installs_data):
     """Log installs data to CSV"""
     try:
-        file_exists = os.path.isfile(INSTALLS_LOG)
+        file_exists = os.path.isfile(config.INSTALLS_LOG)
         
         with open(config.INSTALLS_LOG, 'a', newline='', encoding='utf-8') as f:
             fieldnames = ['timestamp', 'app_name', 'installs', 'real_installs', 'score', 'ratings']
