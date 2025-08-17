@@ -292,38 +292,48 @@
         }
 
         async function searchApp() {
-            const appName = 'Deerwalk'; // Always search for Deerwalk
-            document.getElementById('searchInput').value = appName; // Update the input field
-            
-            const loading = document.getElementById('loading');
-            const result = document.getElementById('result');
-            
-            loading.style.display = 'flex';
-            result.innerHTML = '';
-            
-            try {
-                const response = await fetch(`/search?app_name=${encodeURIComponent(appName)}`);
-                const data = await response.json();
-                
-                loading.style.display = 'none';
-                
-                if (data.error) {
-                    result.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-circle me-2"></i>${data.error}
-                        </div>`;
-                } else {
-                    displayResult(data);
-                }
-            } catch (error) {
-                loading.style.display = 'none';
-                result.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-circle me-2"></i>Error: ${error.message}
-                    </div>`;
-                console.error('Search error:', error);
-            }
+    const appName = 'Deerwalk'; // Always search for Deerwalk
+    document.getElementById('searchInput').value = appName; // Update the input field
+    
+    const loading = document.getElementById('loading');
+    const result = document.getElementById('result');
+    
+    loading.style.display = 'flex';
+    result.innerHTML = '';
+    
+    try {
+        const response = await fetch('/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ app_name: appName })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const data = await response.json();
+        loading.style.display = 'none';
+        
+        if (data.error) {
+            result.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>${data.error}
+                </div>`;
+        } else {
+            displayResult(data);
+        }
+    } catch (error) {
+        loading.style.display = 'none';
+        result.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>Error: ${error.message}
+            </div>`;
+        console.error('Search error:', error);
+    }
+}
 
         // Function to search for Deerwalk specifically
         function searchDeerwalk() {
