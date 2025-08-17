@@ -366,21 +366,21 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="app-logs-tab" data-bs-toggle="tab" data-bs-target="#app-logs" type="button" role="tab" aria-controls="app-logs" aria-selected="true">
-                                    <i class="fas fa-list-ul me-2"></i>Application Logs
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="search-results-tab" data-bs-toggle="tab" data-bs-target="#search-results" type="button" role="tab" aria-controls="search-results" aria-selected="false">
-                                    <i class="fas fa-chart-line me-2"></i>Search Results
-                                </button>
-                            </li>
-                        </ul>
+                            <ul class="nav nav-tabs mb-4" id="logsTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="app-logs-tab" data-bs-toggle="tab" data-bs-target="#app-logs" type="button" role="tab" aria-controls="app-logs" aria-selected="false">
+                                        <i class="fas fa-list-alt me-2"></i>Application Logs
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="search-results-tab" data-bs-toggle="tab" data-bs-target="#search-results" type="button" role="tab" aria-controls="search-results" aria-selected="true">
+                                        <i class="fas fa-search me-2"></i>Search Results
+                                    </button>
+                                </li>
+                            </ul>
                         
-                        <div class="tab-content" id="myTabContent">
-                            <div class="tab-pane fade show active" id="app-logs" role="tabpanel" aria-labelledby="app-logs-tab">
+                        <div class="tab-content" id="logsTabContent">
+                            <div class="tab-pane fade" id="app-logs" role="tabpanel" aria-labelledby="app-logs-tab">
 
                                 <div class="log-container">
                                     {% if app_logs %}
@@ -410,7 +410,7 @@
             </div>
 
                             </div>
-                            <div class="tab-pane fade" id="search-results" role="tabpanel" aria-labelledby="search-results-tab">
+                            <div class="tab-pane fade show active" id="search-results" role="tabpanel" aria-labelledby="search-results-tab">
                                 <div class="search-results">
                                     {% if daily_logs %}
                                         {% for date, searches in daily_logs.items() %}
@@ -819,26 +819,30 @@
         
         // Perform manual search with password
         async function performManualSearch() {
-            const password = document.getElementById('passwordInput').value.trim();
-            const statusElement = document.getElementById('manualSearchStatus');
+            const password = await showPasswordPrompt();
+            if (!password) return;
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('manualSearchModal'));
+            const statusElement = document.getElementById('manualSearchStatus');    
             const spinner = document.getElementById('manualSearchSpinner');
+            const submitBtn = document.getElementById('manualSearchSubmit');
             
-            if (!password) {
-                showToast('Please enter a password', 'danger');
-                return;
-            }
-            
-            // Show loading state
+            // Reset and show status
+            statusElement.className = 'alert alert-info d-none';
+            statusElement.innerHTML = '';
             spinner.classList.remove('d-none');
-            statusElement.classList.add('d-none');
+            submitBtn.disabled = true;
             
             try {
-                const formData = new FormData();
-                formData.append('password', password);
-                
-                const response = await fetch('/manual_search', {
+                const response = await fetch('/manual-search', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        app_name: 'Deerwalk',
+                        password: password
+                    })
                 });
                 
                 const result = await response.json();
@@ -849,12 +853,15 @@
                         <i class="fas fa-check-circle me-2"></i>
                         ${result.message || 'Data updated successfully'}
                         <div class="small text-muted mt-1">${result.timestamp || ''}</div>
+                        <div class="progress mt-2" style="height: 5px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                        </div>
                     `;
                     
                     // Refresh the page after a short delay to show updated data
                     setTimeout(() => {
                         window.location.reload();
-                    }, 1500);
+                    }, 2000);
                 } else {
                     throw new Error(result.error || 'Failed to update data');
                 }
@@ -864,10 +871,22 @@
                 statusElement.innerHTML = `
                     <i class="fas fa-exclamation-circle me-2"></i>
                     ${error.message || 'An error occurred while updating data'}
+                    ${error.details ? `<div class="small mt-1">${error.details}</div>` : ''}
                 `;
+                
+                // Show toast notification
+                showToast('Failed to update data. Please check the error message.', 'danger');
             } finally {
                 statusElement.classList.remove('d-none');
                 spinner.classList.add('d-none');
+                submitBtn.disabled = false;
+                
+                // Auto-hide the modal after 3 seconds if successful
+                if (statusElement.className.includes('alert-success')) {
+                    setTimeout(() => {
+                        if (modal) modal.hide();
+                    }, 3000);
+                }
             }
         }
         
