@@ -295,16 +295,34 @@ def export_logs():
 @app.route('/logs/delete', methods=['POST'])
 @password_required
 def delete_logs():
-    """Delete all logs"""
+    """Delete all logs with password verification"""
     try:
+        # Get password from form data
+        password = request.form.get('password', '')
+        
+        # Verify password
+        if not password or password != config.PASSWORD:
+            flash('Incorrect password. Logs not deleted.', 'error')
+            return redirect(url_for('view_logs'))
+            
         if os.path.exists(config.INSTALLS_LOG):
+            # Create a backup of the log file before deletion
+            backup_path = f"{config.INSTALLS_LOG}.{datetime.now().strftime('%Y%m%d_%H%M%S')}.bak"
+            import shutil
+            shutil.copy2(config.INSTALLS_LOG, backup_path)
+            
+            # Remove the log file
             os.remove(config.INSTALLS_LOG)
-            flash('Logs deleted successfully')
+            
+            # Log the deletion
+            app.logger.info("Logs were cleared by user")
+            flash('Logs deleted successfully', 'success')
         else:
-            flash('No logs to delete')
+            flash('No logs to delete', 'info')
+            
     except Exception as e:
         app.logger.error(f"Error deleting logs: {str(e)}")
-        flash('Error deleting logs')
+        flash('Error deleting logs. Please try again.', 'error')
     
     return redirect(url_for('view_logs'))
 
@@ -325,44 +343,54 @@ def export_real_installs():
             return "No data to export", 404
             
         # Create a CSV in memory
-        output = []
-        output.append(['Date', 'Time', 'App Name', 'Real Installs', 'Rating', 'Total Ratings'])
+        import io
+        import csv
         
-        for row in data:
+        si = io.StringIO()
+        writer = csv.writer(si)
+        
+        # Write header
+        writer.writerow(['Date', 'App Name', 'Installs', 'Real Installs', 'Score', 'Ratings'])
+        
+        # Sort data by timestamp (newest first)
+        data_sorted = sorted(data, 
+                           key=lambda x: x.get('timestamp', ''), 
+                           reverse=True)
+        
+        # Write data rows
+        for row in data_sorted:
             try:
-                timestamp = datetime.fromisoformat(row['timestamp'])
-                date_str = timestamp.strftime('%Y-%m-%d')
-                time_str = timestamp.strftime('%H:%M:%S')
-                
-                output.append([
-                    date_str,
-                    time_str,
-                    row['app_name'],
+                timestamp = datetime.fromisoformat(row.get('timestamp', '')).strftime('%Y-%m-%d %H:%M:%S')
+                writer.writerow([
+                    timestamp,
+                    row.get('app_name', 'N/A'),
+                    row.get('installs', 'N/A'),
                     row.get('real_installs', 'N/A'),
                     row.get('score', 'N/A'),
                     row.get('ratings', 'N/A')
                 ])
             except Exception as e:
-                app.logger.error(f"Error processing log entry for export: {str(e)}")
+                app.logger.error(f"Error processing row for export: {str(e)}")
+                continue
         
-        # Create a CSV response
-        import io
-        import csv
-        
-        si = io.StringIO()
-        cw = csv.writer(si)
-        cw.writerows(output)
+        # Create a response with the CSV data
+        output = si.getvalue()
+        si.close()
         
         response = app.response_class(
-            si.getvalue(),
+            output,
             mimetype='text/csv',
             headers={
-                'Content-Disposition': f'attachment; filename=real_installs_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+                'Content-Disposition': f'attachment; filename=real_installs_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
+                'Content-type': 'text/csv; charset=utf-8',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             }
         )
         
         return response
-        
+                
     except Exception as e:
         app.logger.error(f"Error exporting real installs: {str(e)}")
         return f"Error exporting data: {str(e)}", 500
