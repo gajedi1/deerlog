@@ -332,52 +332,42 @@ def export_real_installs():
     """Export all real installs data as CSV"""
     try:
         if not os.path.exists(config.INSTALLS_LOG):
-            return "No logs to export", 404
+            return jsonify({'error': 'No logs to export'}), 404
             
         # Read the installs log
+        data = []
         with open(config.INSTALLS_LOG, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            data = list(reader)
+            try:
+                reader = csv.DictReader(f)
+                data = list(reader)
+            except Exception as e:
+                app.logger.error(f"Error reading CSV file: {str(e)}")
+                return jsonify({'error': 'Error reading log file'}), 500
             
         if not data:
-            return "No data to export", 404
+            return jsonify({'error': 'No data to export'}), 404
             
         # Create a CSV in memory
         import io
-        import csv
         
         si = io.StringIO()
-        writer = csv.writer(si)
+        fieldnames = ['timestamp', 'app_name', 'installs', 'real_installs', 'score', 'ratings']
+        writer = csv.DictWriter(si, fieldnames=fieldnames)
         
-        # Write header
-        writer.writerow(['Date', 'App Name', 'Installs', 'Real Installs', 'Score', 'Ratings'])
+        try:
+            writer.writeheader()
+            for row in data:
+                # Ensure all required fields are present
+                clean_row = {field: row.get(field, '') for field in fieldnames}
+                writer.writerow(clean_row)
+        except Exception as e:
+            app.logger.error(f"Error writing CSV data: {str(e)}")
+            return jsonify({'error': 'Error generating export file'}), 500
         
-        # Sort data by timestamp (newest first)
-        data_sorted = sorted(data, 
-                           key=lambda x: x.get('timestamp', ''), 
-                           reverse=True)
-        
-        # Write data rows
-        for row in data_sorted:
-            try:
-                timestamp = datetime.fromisoformat(row.get('timestamp', '')).strftime('%Y-%m-%d %H:%M:%S')
-                writer.writerow([
-                    timestamp,
-                    row.get('app_name', 'N/A'),
-                    row.get('installs', 'N/A'),
-                    row.get('real_installs', 'N/A'),
-                    row.get('score', 'N/A'),
-                    row.get('ratings', 'N/A')
-                ])
-            except Exception as e:
-                app.logger.error(f"Error processing row for export: {str(e)}")
-                continue
+        output = si.getvalue()
         
         # Create a response with the CSV data
-        output = si.getvalue()
-        si.close()
-        
-        response = app.response_class(
+        response = Response(
             output,
             mimetype='text/csv',
             headers={
