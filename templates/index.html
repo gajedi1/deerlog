@@ -703,6 +703,252 @@
     <!-- Toast container for notifications -->
     <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
     
+    <script>
+        // Global variables
+        let currentSearchQuery = '';
+        
+        // Set search query from quick search buttons
+        function setSearchQuery(query) {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.value = query;
+                searchInput.focus();
+            }
+        }
+        
+        // Search for Deerwalk specifically
+        function searchDeerwalk() {
+            setSearchQuery('Deerwalk');
+            searchApp();
+        }
+        
+        // Search for an app
+        async function searchApp() {
+            const query = document.getElementById('searchInput')?.value.trim();
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+            
+            if (!query) {
+                showError('Please enter an app name');
+                return;
+            }
+            
+            // Show loading state
+            const searchButton = document.getElementById('searchButton');
+            if (searchButton) {
+                searchButton.disabled = true;
+                const spinner = searchButton.querySelector('.spinner-border');
+                const buttonText = searchButton.querySelector('span:last-child');
+                if (spinner) spinner.classList.remove('d-none');
+                if (buttonText) buttonText.textContent = 'Searching...';
+            }
+            
+            if (resultDiv) resultDiv.style.display = 'none';
+            if (errorDiv) errorDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query }),
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch app data');
+                }
+                
+                displayResult(data);
+            } catch (error) {
+                console.error('Search error:', error);
+                showError(error.message || 'An error occurred while searching');
+            } finally {
+                // Hide loading state
+                const searchButton = document.getElementById('searchButton');
+                if (searchButton) {
+                    searchButton.disabled = false;
+                    const spinner = searchButton.querySelector('.spinner-border');
+                    const buttonText = searchButton.querySelector('span:last-child');
+                    if (spinner) spinner.classList.add('d-none');
+                    if (buttonText) buttonText.textContent = 'Search';
+                }
+            }
+        }
+        
+        // Display search results
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            if (!resultDiv) return;
+            
+            if (data.error) {
+                showError(data.error);
+                return;
+            }
+            
+            // Format the result HTML
+            resultDiv.innerHTML = `
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="${data.icon || 'https://via.placeholder.com/100'}" 
+                                 alt="${data.title || 'App'} icon" 
+                                 class="rounded me-3" 
+                                 style="width: 100px; height: 100px; object-fit: contain;">
+                            <div>
+                                <h2 class="h4 mb-1">${data.title || 'N/A'}</h2>
+                                <p class="text-muted mb-2">${data.developer || 'N/A'}</p>
+                                <div class="d-flex gap-3 text-muted small">
+                                    <span><i class="fas fa-download me-1"></i> ${data.installs || 'N/A'}</span>
+                                    <span><i class="fas fa-star text-warning me-1"></i> ${data.score || 'N/A'}</span>
+                                    <span><i class="fas fa-calendar-alt me-1"></i> ${data.updated || 'N/A'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded">
+                                    <h6 class="text-uppercase text-muted small mb-2">App Details</h6>
+                                    <dl class="mb-0">
+                                        <dt class="small text-muted">Version</dt>
+                                        <dd class="mb-2">${data.version || 'N/A'}</dd>
+                                        <dt class="small text-muted">Size</dt>
+                                        <dd class="mb-2">${data.size || 'N/A'}</dd>
+                                        <dt class="small text-muted">Last Updated</dt>
+                                        <dd class="mb-2">${data.updated || 'N/A'}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded">
+                                    <h6 class="text-uppercase text-muted small mb-2">Ratings &amp; Installs</h6>
+                                    <dl class="mb-0">
+                                        <dt class="small text-muted">Ratings</dt>
+                                        <dd class="mb-2">${data.ratings ? data.ratings.toLocaleString() : 'N/A'}</dd>
+                                        <dt class="small text-muted">Score</dt>
+                                        <dd class="mb-2">${data.score || 'N/A'}</dd>
+                                        <dt class="small text-muted">Installs</dt>
+                                        <dd class="mb-2">${data.installs || 'N/A'}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                        ${data.description ? `
+                        <div class="mt-4">
+                            <h6 class="text-uppercase text-muted small mb-2">Description</h6>
+                            <p class="mb-0">${data.description}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            resultDiv.style.display = 'block';
+        }
+        
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            if (!errorDiv) return;
+            
+            errorDiv.innerHTML = `
+                <div class="alert alert-danger d-flex align-items-center mb-0" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+            errorDiv.style.display = 'block';
+            
+            // Hide the error after 5 seconds
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Initialize the page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners
+            const searchButton = document.getElementById('searchButton');
+            const searchInput = document.getElementById('searchInput');
+            
+            if (searchButton) {
+                searchButton.addEventListener('click', searchApp);
+            }
+            
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchApp();
+                    }
+                });
+                
+                // Focus search input on page load
+                searchInput.focus();
+            }
+            
+            // Initialize Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+        
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            errorMessage.textContent = message;
+            errorDiv.style.display = 'flex';
+            
+            // Hide the error after 5 seconds
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Show loading state
+        function showLoading(show = true) {
+            const searchButton = document.getElementById('searchButton');
+            const spinner = searchButton.querySelector('.spinner-border');
+            const buttonText = searchButton.querySelector('span:last-child');
+            
+            if (show) {
+                searchButton.disabled = true;
+                spinner.classList.remove('d-none');
+                buttonText.textContent = 'Searching...';
+            } else {
+                searchButton.disabled = false;
+                spinner.classList.add('d-none');
+                buttonText.textContent = 'Search';
+            }
+        }
+        
+        // Format number with commas
+        function formatNumber(num) {
+            if (num === 'N/A' || num === undefined || num === null) return 'N/A';
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return 'N/A';
+                return date.toLocaleDateString(undefined, { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+            } catch (e) {
+                return 'N/A';
+            }
+        }
+    </script>
+    
     <style>
         /* Toast notifications */
         .toast {
