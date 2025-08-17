@@ -16,10 +16,29 @@ from functools import wraps
 # Import configuration
 from config import config
 
-# Initialize Flask app
-app = Flask(__name__)
-app.config.from_object(config)
-app.secret_key = config.SECRET_KEY
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(config)
+    app.secret_key = config.SECRET_KEY
+    
+    # Initialize scheduler
+    scheduler = BackgroundScheduler()
+    scheduler.start()
+    atexit.register(lambda: scheduler.shutdown())
+    
+    # Schedule the job to run every 2 hours
+    scheduler.add_job(
+        scheduled_search,
+        IntervalTrigger(hours=2),
+        id='scheduled_search',
+        name='Run scheduled search',
+        replace_existing=True
+    )
+    
+    return app
+
+# Create the Flask application
+app = create_app()
 
 # Configure logging
 if not app.debug:
@@ -38,12 +57,8 @@ if not app.debug:
 if not hasattr(config, 'PASSWORD') or not config.PASSWORD:
     config.PASSWORD = 'dss'  # Default password is 'dss'
 
-# Initialize scheduler
-scheduler = BackgroundScheduler()
-scheduler.start()
-
-# Ensure scheduler shuts down properly
-atexit.register(lambda: scheduler.shutdown())
+# Global scheduler instance
+scheduler = None
 
 def log_installs(app_name, installs_data):
     """Log installs data to CSV"""
@@ -503,10 +518,11 @@ if __name__ == '__main__':
     # Create initial logs directory if it doesn't exist
     os.makedirs('logs', exist_ok=True)
     
-    # Run the scheduled search immediately on startup
+    # Run an initial search
     with app.app_context():
-        scheduled_search()
+        success, message = perform_search()
+        if not success:
+            app.logger.error(f"Initial search failed: {message}")
     
     # Start the Flask app
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=app.debug)
+    app.run(host='0.0.0.0', port=5000, debug=True)
