@@ -1,15 +1,12 @@
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 class Config:
     # Flask settings
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-123'
-    PASSWORD = os.environ.get('PASSWORD', 'dss')  # Default password is 'dss'
+    SECRET_KEY = 'dev-key-123'  # Change this to a secure secret key in production
+    PASSWORD = 'dss'  # Default password
     
     # Logging
-    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    LOG_LEVEL = 'INFO'
     LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
     
     # Application settings
@@ -22,12 +19,5 @@ class DevelopmentConfig(Config):
     DEBUG = True
     LOG_LEVEL = 'DEBUG'
 
-class ProductionConfig(Config):
-    DEBUG = False
-    
-# Default to development config
+# Use development config by default
 config = DevelopmentConfig()
-
-# For production, set RENDER=True in environment variables
-if os.environ.get('RENDER') == 'true':
-    config = ProductionConfig()
