@@ -613,34 +613,101 @@
             }
         }
         
-        function clearLogs() {
-            if (confirm('Are you sure you want to clear all application logs? This cannot be undone.')) {
-                fetch('/clear_logs', {
+        function showPasswordPrompt() {
+            return new Promise((resolve) => {
+                // Create modal container
+                const modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.id = 'passwordModal';
+                modal.tabIndex = '-1';
+                modal.innerHTML = `
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Confirm Log Deletion</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Are you sure you want to clear all application logs? This action cannot be undone.</p>
+                                <div class="mb-3">
+                                    <label for="passwordInput" class="form-label">Enter password to continue:</label>
+                                    <input type="password" class="form-control" id="passwordInput" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" id="confirmDelete" class="btn btn-danger">Delete Logs</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Initialize Bootstrap modal
+                const modalInstance = new bootstrap.Modal(modal);
+                modalInstance.show();
+                
+                // Focus on password input
+                const passwordInput = modal.querySelector('#passwordInput');
+                passwordInput.focus();
+                
+                // Handle confirm button click
+                modal.querySelector('#confirmDelete').addEventListener('click', () => {
+                    const password = passwordInput.value.trim();
+                    if (!password) {
+                        showToast('Please enter a password', 'danger');
+                        return;
+                    }
+                    modalInstance.hide();
+                    resolve(password);
+                });
+                
+                // Clean up after modal is hidden
+                modal.addEventListener('hidden.bs.modal', () => {
+                    document.body.removeChild(modal);
+                    resolve(null); // Resolve with null if modal is closed without confirming
+                });
+            });
+        }
+        
+        async function clearLogs() {
+            const password = await showPasswordPrompt();
+            if (!password) return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('password', password);
+                
+                const response = await fetch('/logs/delete', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        const logContainer = document.querySelector('#app-logs .log-container');
+                    body: formData
+                });
+                
+                if (response.redirected) {
+                    // Handle redirect (happens if password is incorrect)
+                    window.location.href = response.url;
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const logContainer = document.querySelector('#app-logs .log-container');
+                    if (logContainer) {
                         logContainer.innerHTML = `
                             <div class="text-center py-5">
                                 <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
                                 <p class="text-muted">Application logs have been cleared</p>
                             </div>`;
-                        
-                        // Show success toast
-                        showToast('Logs cleared successfully', 'success');
-                    } else {
-                        showToast('Error: ' + data.message, 'danger');
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showToast('Error clearing logs', 'danger');
-                });
+                    showToast('Logs cleared successfully', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to clear logs');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast(error.message || 'Error clearing logs', 'danger');
             }
         }
         

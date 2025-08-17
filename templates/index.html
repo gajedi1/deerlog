@@ -292,41 +292,36 @@
         }
 
         async function searchApp() {
-            const appName = document.getElementById('searchInput').value.trim();
-            const resultDiv = document.getElementById('result');
-            const loadingDiv = document.getElementById('loading');
+            const appName = 'Deerwalk'; // Always search for Deerwalk
+            document.getElementById('searchInput').value = appName; // Update the input field
             
-            if (!appName) {
-                showError('Please enter an app name');
-                return;
-            }
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
             
-            // Show loading, hide previous results
-            loadingDiv.style.display = 'flex';
-            resultDiv.innerHTML = '';
+            loading.style.display = 'flex';
+            result.innerHTML = '';
             
             try {
-                const response = await fetch('/search', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ app_name: appName })
-                });
-                
+                const response = await fetch(`/search?app_name=${encodeURIComponent(appName)}`);
                 const data = await response.json();
                 
-                if (!response.ok || !data.success) {
-                    throw new Error(data.error || 'Failed to fetch app data');
+                loading.style.display = 'none';
+                
+                if (data.error) {
+                    result.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>${data.error}
+                        </div>`;
+                } else {
+                    displayResult(data);
                 }
-                
-                displayResult(data);
-                
             } catch (error) {
+                loading.style.display = 'none';
+                result.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>Error: ${error.message}
+                    </div>`;
                 console.error('Search error:', error);
-                showError(error.message || 'Failed to fetch app data');
-            } finally {
-                loadingDiv.style.display = 'none';
             }
         }
 
