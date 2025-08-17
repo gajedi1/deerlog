@@ -195,16 +195,60 @@ def login():
 @app.route('/logs')
 @password_required
 def view_logs():
-    """View all logs"""
-    if not os.path.exists(config.INSTALLS_LOG):
-        return "No logs found"
-        
-    # Read the installs log
-    with open(config.INSTALLS_LOG, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        logs = list(reader)
+    """View all logs with search results and application logs"""
+    # Process installs log
+    daily_logs = {}
+    app_logs = []
     
-    return render_template('logs.html', logs=logs)
+    # Read application logs
+    log_file = os.path.join('logs', 'playstore_scraper.log')
+    if os.path.exists(log_file):
+        with open(log_file, 'r', encoding='utf-8') as f:
+            app_logs = [line.strip() for line in f.readlines() if line.strip()]
+    
+    # Read and process installs log
+    if os.path.exists(config.INSTALLS_LOG):
+        with open(config.INSTALLS_LOG, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    # Parse timestamp and format date
+                    timestamp = datetime.fromisoformat(row['timestamp'])
+                    date_str = timestamp.strftime('%Y-%m-%d')
+                    time_str = timestamp.strftime('%H:%M:%S')
+                    
+                    # Initialize date entry if not exists
+                    if date_str not in daily_logs:
+                        daily_logs[date_str] = []
+                    
+                    # Prepare result data
+                    result = {
+                        'timestamp': time_str,
+                        'result': {
+                            'title': row.get('app_name', 'Unknown App'),
+                            'developer': 'Unknown',
+                            'installs': row.get('installs', 'N/A'),
+                            'score': float(row.get('score', 0)) if row.get('score', 'N/A') != 'N/A' else 'N/A',
+                            'ratings': int(row.get('ratings', 0)) if row.get('ratings', 'N/A') != 'N/A' else 0,
+                            'realInstalls': int(row.get('real_installs', 0)) if row.get('real_installs', 'N/A') != 'N/A' else 0
+                        }
+                    }
+                    
+                    # Add to daily logs
+                    daily_logs[date_str].append(result)
+                except Exception as e:
+                    app.logger.error(f"Error processing log entry: {str(e)}")
+    
+    # Sort daily logs by date (newest first)
+    daily_logs = dict(sorted(daily_logs.items(), key=lambda x: x[0], reverse=True))
+    
+    # Sort each day's searches by time (newest first)
+    for date in daily_logs:
+        daily_logs[date].sort(key=lambda x: x['timestamp'], reverse=True)
+    
+    return render_template('logs.html', 
+                         daily_logs=daily_logs, 
+                         app_logs=app_logs[-100:])  # Show only last 100 log entries
 
 @app.route('/logs/export')
 @password_required
@@ -264,18 +308,99 @@ def delete_logs():
     
     return redirect(url_for('view_logs'))
 
+@app.route('/logs/export/real_installs')
+@password_required
+def export_real_installs():
+    """Export all real installs data as CSV"""
+    try:
+        if not os.path.exists(config.INSTALLS_LOG):
+            return "No logs to export", 404
+            
+        # Read the installs log
+        with open(config.INSTALLS_LOG, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            data = list(reader)
+            
+        if not data:
+            return "No data to export", 404
+            
+        # Create a CSV in memory
+        output = []
+        output.append(['Date', 'Time', 'App Name', 'Real Installs', 'Rating', 'Total Ratings'])
+        
+        for row in data:
+            try:
+                timestamp = datetime.fromisoformat(row['timestamp'])
+                date_str = timestamp.strftime('%Y-%m-%d')
+                time_str = timestamp.strftime('%H:%M:%S')
+                
+                output.append([
+                    date_str,
+                    time_str,
+                    row['app_name'],
+                    row.get('real_installs', 'N/A'),
+                    row.get('score', 'N/A'),
+                    row.get('ratings', 'N/A')
+                ])
+            except Exception as e:
+                app.logger.error(f"Error processing log entry for export: {str(e)}")
+        
+        # Create a CSV response
+        import io
+        import csv
+        
+        si = io.StringIO()
+        cw = csv.writer(si)
+        cw.writerows(output)
+        
+        response = app.response_class(
+            si.getvalue(),
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename=real_installs_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+            }
+        )
+        
+        return response
+        
+    except Exception as e:
+        app.logger.error(f"Error exporting real installs: {str(e)}")
+        return f"Error exporting data: {str(e)}", 500
+
 def scheduled_search():
     """Perform a scheduled search for Deerwalk"""
     with app.app_context():
         try:
             app.logger.info("Running scheduled search for 'Deerwalk'")
             result = get_app_info('Deerwalk')
-            if 'error' in result:
-                app.logger.error(f"Error in scheduled search: {result['error']}")
-            else:
-                app.logger.info("Scheduled search completed successfully")
+            
+            if not result.get('success', False):
+                error_msg = result.get('error', 'Unknown error')
+                app.logger.error(f"Error in scheduled search: {error_msg}")
+                return
+                
+            # Log successful search
+            app.logger.info(f"Successfully fetched data for: {result.get('app', {}).get('title', 'Unknown App')}")
+            
+            # Log installs information
+            if 'app' in result:
+                app_data = result['app']
+                installs = app_data.get('installs', 'N/A')
+                real_installs = app_data.get('realInstalls', 'N/A')
+                score = app_data.get('score', 'N/A')
+                
+                app.logger.info(
+                    f"App Stats - Installs: {installs}, "
+                    f"Real Installs: {real_installs}, "
+                    f"Rating: {score}"
+                )
+                
         except Exception as e:
-            app.logger.error(f"Error in scheduled search: {str(e)}")
+            app.logger.error(f"Error in scheduled search: {str(e)}", exc_info=True)
+        finally:
+            # Log next scheduled run time
+            next_run = datetime.now() + timedelta(hours=2)
+            app.logger.info(f"Next scheduled search at: {next_run}")
 
 # Schedule the job to run every 2 hours
 scheduler.add_job(
