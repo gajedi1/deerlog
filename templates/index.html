@@ -387,152 +387,135 @@
             
             // Format numbers with thousands separators
             const formatNumber = (num) => {
-                if (!num || isNaN(num)) return 'N/A';
-                return parseInt(num).toLocaleString();
-            };
-            
-            // Generate star rating HTML
-            const generateStars = (score) => {
-                if (!score) return '';
-                const fullStars = Math.floor(score);
-                const hasHalfStar = score % 1 >= 0.5;
-                let stars = '';
-                
-                for (let i = 0; i < 5; i++) {
-                    if (i < fullStars) {
-                        stars += '★';
-                    } else if (i === fullStars && hasHalfStar) {
-                        stars += '½';
-                    } else {
-                        stars += '☆';
-                    }
-                }
-                return stars;
-            };
-            
             resultDiv.innerHTML = `
-                <div class="app-card">
-                    <div class="app-header">
-                        <img src="${app.icon || 'https://via.placeholder.com/192'}" 
-                             alt="${app.title || 'App Icon'}" 
-                             class="app-icon"
-                             onerror="this.onerror=null; this.src='https://via.placeholder.com/192?text=No+Image'">
-                        <div class="app-info">
-                            <h2>${app.title || 'N/A'}</h2>
-                            <p class="developer">${app.developer || 'N/A'}</p>
-                            
-                            <div class="stats-grid">
-                                ${app.score ? `
-                                <div class="stat-card">
-                                    <div class="stat-value">${app.score.toFixed(1)}</div>
-                                    <div class="stat-label">Rating</div>
-                                    <div class="stars" title="${app.score.toFixed(1)} out of 5">
-                                        ${generateStars(app.score)}
-                                    </div>
-                                    <div class="ratings-count">${formatNumber(app.ratings)} ratings</div>
-                                </div>
-                                ` : ''}
-                                
-                                <div class="stat-card">
-                                    <div class="stat-value">${app.installs || 'N/A'}</div>
-                                    <div class="stat-label">Installs</div>
-                                    ${hasRealInstalls ? `
-                                    <div class="real-installs" title="Real Installs">
-                                        <i class="fas fa-users"></i>
-                                        ${formatNumber(app.realInstalls)} real installs
-                                    </div>
-                                    ` : ''}
-                                </div>
-                                
-                                ${app.version ? `
-                                <div class="stat-card">
-                                    <div class="stat-value">v${app.version}</div>
-                                    <div class="stat-label">Version</div>
-                                    ${app.updated ? `
-                                    <div class="text-muted small mt-1" title="Last Updated">
-                                        <i class="far fa-clock"></i> 
-                                        ${new Date(app.updated).toLocaleDateString()}
-                                    </div>
-                                    ` : ''}
-                                </div>
-                                ` : ''}
+                <div class="app-header d-flex flex-column flex-md-row align-items-center">
+                    <img src="${data.icon || 'https://via.placeholder.com/100'}" 
+                         alt="${data.title || 'App'} icon" 
+                         class="app-icon mb-3 mb-md-0">
+                    <div class="text-center text-md-start ms-md-4">
+                        <h2 class="app-title">${data.title || 'N/A'}</h2>
+                        <div class="app-developer">${data.developer || 'N/A'}</div>
+                        <div class="app-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-download"></i>
+                                ${data.installs || 'N/A'}
                             </div>
-                            
-                            <a href="${app.url || '#'}" target="_blank" class="play-store-btn">
-                                <i class="fab fa-google-play"></i>
-                                View on Google Play
-                            </a>
+                            <div class="meta-item">
+                                <i class="fas fa-star"></i>
+                                ${data.score ? data.score.toFixed(1) : 'N/A'}
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                ${formatDate(data.updated)}
+                            </div>
                         </div>
                     </div>
-                    
-                    ${app.description ? `
-                    <div class="description">
-                        <h3>Description</h3>
-                        <p>${app.description.replace(/\n/g, '<br>')}</p>
+                </div>
+                <div class="app-details">
+                    <div class="detail-row">
+                        <div class="detail-label">Real Installs:</div>
+                        <div class="detail-value">
+                            <span class="badge badge-installs">${formatNumber(data.realInstalls) || 'N/A'}</span>
+                        </div>
                     </div>
-                    ` : ''}
-                </div>`;
+                    <div class="detail-row">
+                        <div class="detail-label">Ratings:</div>
+                        <div class="detail-value">
+                            <span class="badge badge-rating">
+                                ${formatNumber(data.ratings) || 'N/A'}
+                                ${data.score ? `(${data.score.toFixed(1)} ★)` : ''}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Last Updated:</div>
+                        <div class="detail-value">
+                            <span class="badge badge-updated">${formatDate(data.updated) || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Version:</div>
+                        <div class="detail-value">
+                            <span class="badge badge-version">${data.version || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Size:</div>
+                        <div class="detail-value">
+                            <span class="badge badge-size">${data.size || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Description:</div>
+                        <div class="detail-value">
+                            ${data.description || 'No description available.'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Show the result div
+            resultDiv.style.display = 'block';
+            
+            // Hide any error messages
+            document.getElementById('error').style.display = 'none';
+            
+            // Scroll to results
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-
+        
+        // Search for an app
         async function searchApp() {
-    const appName = 'Deerwalk'; // Always search for Deerwalk
-    document.getElementById('searchInput').value = appName; // Update the input field
-    
-    const loading = document.getElementById('loading');
-    const result = document.getElementById('result');
-    
-    loading.style.display = 'flex';
-    result.innerHTML = '';
-    
-    try {
-        const response = await fetch('/search', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ app_name: appName })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const query = document.getElementById('searchInput').value.trim();
+            
+            if (!query) {
+                showError('Please enter an app name');
+                document.getElementById('searchInput').focus();
+                return;
+            }
+            
+            // Update current search query
+            currentSearchQuery = query;
+            
+            // Show loading state
+            showLoading(true);
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query }),
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch app data');
+                }
+                
+                displayResult(data);
+                showToast('App data loaded successfully', 'success');
+            } catch (error) {
+                console.error('Search error:', error);
+                showError(error.message || 'An error occurred while searching');
+                showToast(error.message || 'Failed to load app data', 'danger');
+            } finally {
+                // Hide loading state
+                showLoading(false);
+            }
         }
         
-        const data = await response.json();
-        loading.style.display = 'none';
-        
-        if (data.error) {
-            result.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle me-2"></i>${data.error}
-                </div>`;
-        } else {
-            displayResult(data);
-        }
-    } catch (error) {
-        loading.style.display = 'none';
-        result.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle me-2"></i>Error: ${error.message}
-            </div>`;
-        console.error('Search error:', error);
-    }
-}
-
-        // Function to search for Deerwalk specifically
+        // Search for Deerwalk specifically
         function searchDeerwalk() {
-            const searchInput = document.getElementById('searchInput');
-            searchInput.value = 'Deerwalk';
+            setSearchQuery('Deerwalk');
             searchApp();
         }
-
-        // Add event listener for Enter key
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchApp();
-            }
-        });
         
-        // Show/hide manual search modal
+        // Show manual search modal
         function showManualSearchModal() {
             const modal = new bootstrap.Modal(document.getElementById('manualSearchModal'));
             document.getElementById('passwordInput').value = '';
@@ -540,28 +523,99 @@
             modal.show();
         }
         
+        // Show password prompt
+        async function showPasswordPrompt() {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.id = 'passwordModal';
+                modal.tabIndex = '-1';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Enter Password</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="passwordInput" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="passwordInputField">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="confirmPassword">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                const modalInstance = new bootstrap.Modal(modal);
+                modalInstance.show();
+                
+                const confirmBtn = modal.querySelector('#confirmPassword');
+                const passwordInput = modal.querySelector('#passwordInputField');
+                
+                // Focus password field when modal is shown
+                modal.addEventListener('shown.bs.modal', () => {
+                    passwordInput.focus();
+                });
+                
+                // Handle confirm button click
+                confirmBtn.addEventListener('click', () => {
+                    const password = passwordInput.value.trim();
+                    if (password) {
+                        modalInstance.hide();
+                        resolve(password);
+                    } else {
+                        showError('Please enter a password');
+                    }
+                });
+                
+                // Handle Enter key in password field
+                passwordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        confirmBtn.click();
+                    }
+                });
+                
+                // Clean up when modal is hidden
+                modal.addEventListener('hidden.bs.modal', () => {
+                    document.body.removeChild(modal);
+                    resolve(null);
+                });
+            });
+        }
+        
         // Perform manual search with password
         async function performManualSearch() {
-            const password = document.getElementById('passwordInput').value.trim();
+            const password = await showPasswordPrompt();
+            if (!password) return;
+            
+            const modal = document.getElementById('manualSearchModal');
             const statusElement = document.getElementById('manualSearchStatus');
+            const submitBtn = document.getElementById('manualSearchSubmit');
             const spinner = document.getElementById('manualSearchSpinner');
             
-            if (!password) {
-                showToast('Please enter a password', 'danger');
-                return;
-            }
-            
-            // Show loading state
+            // Reset and show status
+            statusElement.className = 'alert alert-info';
+            statusElement.innerHTML = 'Updating data, please wait...';
             spinner.classList.remove('d-none');
-            statusElement.classList.add('d-none');
+            submitBtn.disabled = true;
             
             try {
-                const formData = new FormData();
-                formData.append('password', password);
-                
-                const response = await fetch('/manual_search', {
+                const response = await fetch('/manual-search', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        app_name: 'Deerwalk',
+                        password: password
+                    })
                 });
                 
                 const result = await response.json();
@@ -572,12 +626,15 @@
                         <i class="fas fa-check-circle me-2"></i>
                         ${result.message || 'Data updated successfully'}
                         <div class="small text-muted mt-1">${result.timestamp || ''}</div>
+                        <div class="progress mt-2" style="height: 5px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                        </div>
                     `;
                     
                     // Refresh the page after a short delay to show updated data
                     setTimeout(() => {
                         window.location.reload();
-                    }, 1500);
+                    }, 2000);
                 } else {
                     throw new Error(result.error || 'Failed to update data');
                 }
@@ -588,62 +645,246 @@
                     <i class="fas fa-exclamation-circle me-2"></i>
                     ${error.message || 'An error occurred while updating data'}
                 `;
+                
+                // Show toast notification
+                showToast('Failed to update data. Please check the error message.', 'danger');
             } finally {
-                statusElement.classList.remove('d-none');
                 spinner.classList.add('d-none');
+                submitBtn.disabled = false;
             }
         }
         
         // Show toast notification
         function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) return;
+            
+            const toastId = 'toast-' + Date.now();
             const toast = document.createElement('div');
-            toast.className = `toast align-items-center text-white bg-${type} border-0`;
-            toast.innerHTML = `
-                <div class="d-inline-flex flex-grow-1">
-                    <i class="fas fa-${type === 'info' ? 'info-circle' : type === 'danger' ? 'exclamation-circle' : 'check-circle'} me-2"></i>
-                    ${message}
-                </div>
-            `;
-            document.body.appendChild(toast);
-            setTimeout(() => {
+            toast.id = toastId;
+            toast.className = `toast show mb-3`;
+            toast.role = 'alert';
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            const toastHeader = document.createElement('div');
+            toastHeader.className = `toast-header bg-${type} text-white`;
+            
+            const toastTitle = document.createElement('strong');
+            toastTitle.className = 'me-auto';
+            toastTitle.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            
+            const closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'btn-close btn-close-white';
+            closeButton.setAttribute('data-bs-dismiss', 'toast');
+            closeButton.setAttribute('aria-label', 'Close');
+            
+            const toastBody = document.createElement('div');
+            toastBody.className = 'toast-body bg-light';
+            toastBody.textContent = message;
+            
+            toastHeader.appendChild(toastTitle);
+            toastHeader.appendChild(closeButton);
+            toast.appendChild(toastHeader);
+            toast.appendChild(toastBody);
+            
+            toastContainer.appendChild(toast);
+            
+            // Initialize Bootstrap toast
+            const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 5000 });
+            bsToast.show();
+            
+            // Auto-remove the toast after it's hidden
+            toast.addEventListener('hidden.bs.toast', () => {
                 toast.remove();
-            }, 3000);
+            });
         }
-    </script>
-    <div id="loading" class="loading" style="display: none;">
-        <div class="spinner"></div>
-        <p>Searching the Play Store...</p>
-    </div>
-    
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-12 col-md-10 col-lg-8">
-                <div class="card shadow">
-                    <div class="card-header bg-primary text-white text-center">
-                        <h4 class="mb-0"><i class="fas fa-search me-2"></i>Play Store Search</h4>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="search-container d-flex justify-content-center">
-                            <div class="input-group" style="max-width: 500px;">
-                                <input type="text" id="searchInput" class="form-control" placeholder="Search for Deerwalk" value="Deerwalk" disabled>
-                                <button class="btn btn-primary" type="button" onclick="searchApp()">
-                                    <i class="fas fa-search me-2"></i>Search Deerwalk
-                                </button>
-                            </div>
-                        </div>
-                        <div id="result" class="mt-4 text-start"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Toast container for notifications -->
+    <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
     
     <style>
+        /* Toast notifications */
+        .toast {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        .toast-header {
+            border-radius: 0.25rem 0.25rem 0 0;
+        }
+        
+        .toast-body {
+            border-radius: 0 0 0.25rem 0.25rem;
+        }
+        
+        /* App card styles */
+        .app-card {
+            background: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin: 2rem auto;
+            max-width: 800px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .app-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.12);
+        }
+        
+        .app-header {
+            padding: 2rem;
+            border-bottom: 1px solid #f0f0f0;
+            background: linear-gradient(135deg, #f8f9fc 0%, #f1f3f9 100%);
+        }
+        
+        .app-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 1.5rem;
+            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+            margin-right: 1.5rem;
+            object-fit: contain;
+        }
+        
+        .app-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin: 0 0 0.5rem;
+        }
+        
+        .app-developer {
+            color: #718096;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .app-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.95rem;
+            color: #4a5568;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 0.4rem 0.8rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .meta-item i {
+            margin-right: 0.4rem;
+            color: var(--primary-color);
+        }
+        
+        .app-details {
+            padding: 2rem;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #4a5568;
+            width: 140px;
+            flex-shrink: 0;
+        }
+        
+        .detail-value {
+            flex: 1;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+        
+        /* Badge styles */
+        .badge {
+            padding: 0.4em 0.8em;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            font-size: 0.9em;
+        }
+        
+        .badge-installs {
+            background-color: rgba(66, 153, 225, 0.1);
+            color: #3182ce;
+        }
+        
+        .badge-rating {
+            background-color: rgba(72, 187, 120, 0.1);
+            color: #38a169;
+        }
+        
+        .badge-updated {
+            background-color: rgba(159, 122, 234, 0.1);
+            color: #6b46c1;
+        }
+        
+        .badge-version {
+            background-color: rgba(246, 173, 85, 0.1);
+            color: #d69e2e;
+        }
+        
+        .badge-size {
+            background-color: rgba(237, 100, 104, 0.1);
+            color: #e53e3e;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .app-header {
+                flex-direction: column;
+                text-align: center;
+                padding: 1.5rem;
+            }
+            
+            .app-icon {
+                margin: 0 auto 1.25rem;
+            }
+            
+            .app-meta {
+                justify-content: center;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+            }
+            
+            .detail-label {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+        
+        /* Footer styles */
         .footer-container {
             margin-top: 3rem;
-            padding: 1.5rem 0;
+            padding: 2rem 0;
             background-color: #f8f9fa;
             border-top: 1px solid #e9ecef;
+            text-align: center;
         }
         
         .footer-container a {
