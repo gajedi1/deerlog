@@ -2,8 +2,12 @@ Flask==2.3.3
 apscheduler==3.10.1
 google-play-scraper==1.2.3
 pytz==2023.3
-waitress==2.1.2
 requests==2.31.0
 python-dotenv==1.0.0
 gunicorn==21.2.0
 python-dateutil==2.8.2
+Werkzeug==2.3.7
+itsdangerous==2.1.2
+Jinja2==3.1.2
+click==8.1.6
+MarkupSafe==2.1.3
