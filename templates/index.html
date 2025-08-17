@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Store Analytics</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         :root {
             --primary-color: #4e73df;
@@ -42,20 +42,6 @@
             border-bottom: 1px solid #e3e6f0;
         }
         
-        .header h1 {
-            font-size: 2.25rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 1rem;
-        }
-        
-        .header p {
-            color: #6c757d;
-            font-size: 1.1rem;
-            max-width: 700px;
-            margin: 0 auto 1.5rem;
-        }
-        
         .view-logs {
             display: inline-flex;
             align-items: center;
@@ -66,7 +52,6 @@
             text-decoration: none;
             font-weight: 600;
             transition: all 0.2s;
-            border: 1px solid transparent;
         }
         
         .view-logs:hover {
@@ -76,14 +61,9 @@
             color: white;
         }
         
-        .view-logs i {
-            margin-right: 0.5rem;
-        }
-        
         .search-container {
             max-width: 700px;
             margin: 0 auto 2.5rem;
-            position: relative;
         }
         
         #searchInput {
@@ -92,253 +72,63 @@
             font-size: 1.1rem;
             border: 2px solid #d1d3e2;
             border-radius: 0.5rem;
-            box-shadow: 0 0.15rem 0.5rem rgba(0, 0, 0, 0.05);
-            transition: all 0.3s;
-        }
-        
-        #searchInput:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
         }
         
         .btn-search {
-            position: absolute;
-            right: 5px;
-            top: 5px;
-            height: calc(100% - 10px);
-            padding: 0 1.75rem;
+            height: 3.5rem;
+            padding: 0 2rem;
+            font-size: 1.1rem;
             font-weight: 600;
-            background-color: var(--primary-color);
-            border: none;
-            border-radius: 0.35rem;
-            display: flex;
-            align-items: center;
-            color: white;
-            transition: all 0.2s;
-        }
-        
-        .btn-search:hover {
-            background-color: #2e59d9;
-            transform: translateY(-1px);
-        }
-        
-        .btn-search .spinner-border {
-            display: none;
-            width: 1.25rem;
-            height: 1.25rem;
-            margin-right: 0.5rem;
-            border-width: 0.15em;
-        }
-        
-        .btn-search.loading .spinner-border {
-            display: inline-block;
-        }
-        
-        .quick-search {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .quick-search .btn {
-            margin: 0.25rem;
-            padding: 0.5rem 1.25rem;
-            border-radius: 2rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        
-        .quick-search .btn i {
-            margin-right: 0.5rem;
-        }
-        
-        .app-card {
-            margin-top: 2rem;
-            border: none;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .app-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .container {
-                margin: 0;
-                padding: 1.5rem;
-                border-radius: 0;
-            }
-            
-            .header h1 {
-                font-size: 1.75rem;
-            }
-            
-            .header p {
-                font-size: 1rem;
-            }
-            
-            #searchInput {
-                padding-right: 100px;
-            }
-        }
-    </style>
-    <style>
-        :root {
-            --primary-color: #4285f4;
-            --secondary-color: #34a853;
-            --accent-color: #fbbc05;
-            --text-color: #333;
-            --light-bg: #f8f9fa;
-            --border-radius: 10px;
-        }
-        
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background-color: #f5f7fa;
-            color: var(--text-color);
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background-color: #fff;
-            border-radius: var(--border-radius);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
         
         .app-card {
             margin-top: 2rem;
             background: #fff;
-            border-radius: var(--border-radius);
+            border-radius: 0.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        .app-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
         }
         
         .app-header {
-            display: flex;
             padding: 1.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+            border-bottom: 1px solid #e3e6f0;
         }
         
-        .app-icon {
-            width: 96px;
-            height: 96px;
-            border-radius: 20px;
-            margin-right: 1.5rem;
-            object-fit: contain;
-            background: #fff;
-            padding: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        .app-details {
+            padding: 1.5rem;
+        }
+        
+        .detail {
+            display: flex;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .label {
+            font-weight: 600;
+            color: #6c757d;
+            width: 120px;
             flex-shrink: 0;
         }
         
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+        .value {
+            flex-grow: 1;
         }
         
-        .header h1 {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 0;
+        /* Toast notifications */
+        .toast-container {
+            z-index: 1100;
         }
         
-        .view-logs {
-            text-decoration: none;
-            color: #337ab7;
+        .toast {
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
         }
         
-        .search-container {
-            display: flex;
-            flex-wrap: nowrap;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-        
-        #searchInput {
-            flex: 1;
-            max-width: 500px;
-            height: 46px;
-            padding: 10px 15px;
-            font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        
-        .search-button {
-            height: 46px;
-            padding: 0 20px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            background-color: #4285f4;
-            color: white;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: background-color 0.2s;
-        }
-        
-        .search-button:hover {
-            background-color: #3367d6;
-        }
-        
-        .deerwalk-button {
-            background-color: #34a853 !important;
-        }
-        
-        .deerwalk-button:hover {
-            background-color: #2d8e47 !important;
-        }
-        .result {
-            padding: 20px;
-        }
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-top: 4px solid #337ab7;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-        .error {
-            padding: 20px;
-            background-color: #f0f0f0;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        .toast.hide {
+            opacity: 0;
         }
     </style>
 </head>
@@ -357,111 +147,97 @@
                 <div class="input-group">
                     <input type="text" 
                            id="searchInput" 
-                           class="form-control form-control-lg" 
+                           class="form-control" 
                            placeholder="Search for an app (e.g., Facebook, Instagram, WhatsApp)..."
                            autocomplete="off"
                            onkeypress="if(event.key === 'Enter') searchApp()">
                     <button id="searchButton" class="btn btn-primary btn-search" onclick="searchApp()">
-                        <span class="spinner-border spinner-border-sm"></span>
-                        <span>Search</span>
+                        <span id="searchSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        <span id="searchButtonText">Search</span>
                     </button>
                 </div>
             </div>
-                        <li>App Name: ${document.getElementById('searchInput').value || 'N/A'}</li>
-                        <li>Time: ${new Date().toLocaleString()}</li>
-                        <li>Error: ${message}</li>
-                    </ul>
-                </div>`;
-        }
-
-        function displayResult(data) {
-            const resultDiv = document.getElementById('result');
             
-            if (data.error) {
-                showError(data.error);
-                return;
+            <div id="error" class="alert alert-danger d-none" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span id="errorMessage"></span>
+            </div>
+            
+            <div id="result"></div>
+            
+            <!-- Manual Search Modal -->
+            <div class="modal fade" id="manualSearchModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Manual Search</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="passwordInput" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="passwordInput" placeholder="Enter password">
+                            </div>
+                            <div id="manualSearchStatus" class="d-none"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="manualSearchSubmit" onclick="performManualSearch()">
+                                <span id="manualSearchSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Toast container -->
+    <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentSearchQuery = '';
+        
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Add event listeners
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchApp();
+                }
+            });
+            
+            // Initialize manual search modal
+            const manualSearchModal = document.getElementById('manualSearchModal');
+            if (manualSearchModal) {
+                manualSearchModal.addEventListener('shown.bs.modal', function () {
+                    document.getElementById('passwordInput').focus();
+                });
             }
-            
-            const app = data.app || data; // Handle both formats
-            const hasRealInstalls = app.realInstalls && app.realInstalls !== 'N/A' && app.realInstalls !== 0;
-            
-            // Format numbers with thousands separators
-            const formatNumber = (num) => {
-            resultDiv.innerHTML = `
-                <div class="app-header d-flex flex-column flex-md-row align-items-center">
-                    <img src="${data.icon || 'https://via.placeholder.com/100'}" 
-                         alt="${data.title || 'App'} icon" 
-                         class="app-icon mb-3 mb-md-0">
-                    <div class="text-center text-md-start ms-md-4">
-                        <h2 class="app-title">${data.title || 'N/A'}</h2>
-                        <div class="app-developer">${data.developer || 'N/A'}</div>
-                        <div class="app-meta">
-                            <div class="meta-item">
-                                <i class="fas fa-download"></i>
-                                ${data.installs || 'N/A'}
-                            </div>
-                            <div class="meta-item">
-                                <i class="fas fa-star"></i>
-                                ${data.score ? data.score.toFixed(1) : 'N/A'}
-                            </div>
-                            <div class="meta-item">
-                                <i class="fas fa-calendar-alt"></i>
-                                ${formatDate(data.updated)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="app-details">
-                    <div class="detail-row">
-                        <div class="detail-label">Real Installs:</div>
-                        <div class="detail-value">
-                            <span class="badge badge-installs">${formatNumber(data.realInstalls) || 'N/A'}</span>
-                        </div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Ratings:</div>
-                        <div class="detail-value">
-                            <span class="badge badge-rating">
-                                ${formatNumber(data.ratings) || 'N/A'}
-                                ${data.score ? `(${data.score.toFixed(1)} ★)` : ''}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Last Updated:</div>
-                        <div class="detail-value">
-                            <span class="badge badge-updated">${formatDate(data.updated) || 'N/A'}</span>
-                        </div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Version:</div>
-                        <div class="detail-value">
-                            <span class="badge badge-version">${data.version || 'N/A'}</span>
-                        </div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Size:</div>
-                        <div class="detail-value">
-                            <span class="badge badge-size">${data.size || 'N/A'}</span>
-                        </div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Description:</div>
-                        <div class="detail-value">
-                            ${data.description || 'No description available.'}
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Show the result div
-            resultDiv.style.display = 'block';
-            
-            // Hide any error messages
-            document.getElementById('error').style.display = 'none';
-            
-            // Scroll to results
-            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        
+        // Set search query from quick search buttons
+        function setSearchQuery(query) {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.value = query;
+                searchInput.focus();
+            }
+        }
+        
+        // Search for Deerwalk specifically
+        function searchDeerwalk() {
+            setSearchQuery('Deerwalk');
+            searchApp();
         }
         
         // Search for an app
@@ -509,148 +285,138 @@
             }
         }
         
-        // Search for Deerwalk specifically
-        function searchDeerwalk() {
-            setSearchQuery('Deerwalk');
-            searchApp();
-        }
-        
-        // Show manual search modal
-        function showManualSearchModal() {
-            const modal = new bootstrap.Modal(document.getElementById('manualSearchModal'));
-            document.getElementById('passwordInput').value = '';
-            document.getElementById('manualSearchStatus').classList.add('d-none');
-            modal.show();
-        }
-        
-        // Show password prompt
-        async function showPasswordPrompt() {
-            return new Promise((resolve) => {
-                const modal = document.createElement('div');
-                modal.className = 'modal fade';
-                modal.id = 'passwordModal';
-                modal.tabIndex = '-1';
-                modal.innerHTML = `
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Enter Password</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="passwordInput" class="form-label">Password</label>
-                                    <input type="password" class="form-control" id="passwordInputField">
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" id="confirmPassword">Confirm</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                document.body.appendChild(modal);
-                
-                const modalInstance = new bootstrap.Modal(modal);
-                modalInstance.show();
-                
-                const confirmBtn = modal.querySelector('#confirmPassword');
-                const passwordInput = modal.querySelector('#passwordInputField');
-                
-                // Focus password field when modal is shown
-                modal.addEventListener('shown.bs.modal', () => {
-                    passwordInput.focus();
-                });
-                
-                // Handle confirm button click
-                confirmBtn.addEventListener('click', () => {
-                    const password = passwordInput.value.trim();
-                    if (password) {
-                        modalInstance.hide();
-                        resolve(password);
-                    } else {
-                        showError('Please enter a password');
-                    }
-                });
-                
-                // Handle Enter key in password field
-                passwordInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        confirmBtn.click();
-                    }
-                });
-                
-                // Clean up when modal is hidden
-                modal.addEventListener('hidden.bs.modal', () => {
-                    document.body.removeChild(modal);
-                    resolve(null);
-                });
-            });
-        }
-        
-        // Perform manual search with password
-        async function performManualSearch() {
-            const password = await showPasswordPrompt();
-            if (!password) return;
+        // Display search results
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            if (!resultDiv) return;
             
-            const modal = document.getElementById('manualSearchModal');
-            const statusElement = document.getElementById('manualSearchStatus');
-            const submitBtn = document.getElementById('manualSearchSubmit');
-            const spinner = document.getElementById('manualSearchSpinner');
+            if (data.error) {
+                showError(data.error);
+                return;
+            }
             
-            // Reset and show status
-            statusElement.className = 'alert alert-info';
-            statusElement.innerHTML = 'Updating data, please wait...';
-            spinner.classList.remove('d-none');
-            submitBtn.disabled = true;
+            const app = data.app || data; // Handle both formats
+            const hasRealInstalls = app.realInstalls && app.realInstalls !== 'N/A' && app.realInstalls !== 0;
             
-            try {
-                const response = await fetch('/manual-search', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                        app_name: 'Deerwalk',
-                        password: password
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok && result.success) {
-                    statusElement.className = 'alert alert-success';
-                    statusElement.innerHTML = `
-                        <i class="fas fa-check-circle me-2"></i>
-                        ${result.message || 'Data updated successfully'}
-                        <div class="small text-muted mt-1">${result.timestamp || ''}</div>
-                        <div class="progress mt-2" style="height: 5px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
-                        </div>
-                    `;
-                    
-                    // Refresh the page after a short delay to show updated data
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                } else {
-                    throw new Error(result.error || 'Failed to update data');
+            // Format numbers with thousands separators
+            const formatNumber = (num) => {
+                if (num === 'N/A' || num === null || num === undefined) return 'N/A';
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            };
+            
+            // Format date
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                try {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } catch (e) {
+                    return dateString;
                 }
-            } catch (error) {
-                console.error('Manual search error:', error);
-                statusElement.className = 'alert alert-danger';
-                statusElement.innerHTML = `
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    ${error.message || 'An error occurred while updating data'}
-                `;
+            };
+            
+            // Build the HTML
+            let html = `
+                <div class="app-card">
+                    <div class="app-header">
+                        <h2>${app.title || 'N/A'}</h2>
+                        <p class="text-muted mb-2">${app.developer || 'N/A'}</p>
+                        <span class="badge bg-primary">
+                            <i class="fas fa-download me-1"></i> ${app.installs || 'N/A'}
+                        </span>
+                    </div>
+                    
+                    <div class="app-details">
+                        <div class="detail">
+                            <span class="label">Rating:</span>
+                            <span class="value">
+                                ${app.score ? `${app.score.toFixed(1)} <i class="fas fa-star text-warning"></i>` : 'N/A'}
+                                ${app.ratings ? `(${formatNumber(app.ratings)})` : ''}
+                            </span>
+                        </div>
+                        
+                        <div class="detail">
+                            <span class="label">Real Installs:</span>
+                            <span class="value">${formatNumber(app.realInstalls) || 'N/A'}</span>
+                        </div>
+                        
+                        <div class="detail">
+                            <span class="label">Last Updated:</span>
+                            <span class="value">${formatDate(app.updated) || 'N/A'}</span>
+                        </div>
+                        
+                        ${app.version ? `
+                            <div class="detail">
+                                <span class="label">Version:</span>
+                                <span class="value">${app.version}</span>
+                            </div>
+                        ` : ''}
+                        
+                        ${app.size ? `
+                            <div class="detail">
+                                <span class="label">Size:</span>
+                                <span class="value">${app.size}</span>
+                            </div>
+                        ` : ''}
+                        
+                        ${app.description ? `
+                            <div class="mt-4">
+                                <h5>Description:</h5>
+                                <p class="text-muted">${app.description}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            
+            // Scroll to results
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            if (errorDiv && errorMessage) {
+                errorMessage.textContent = message;
+                errorDiv.style.display = 'block';
                 
-                // Show toast notification
-                showToast('Failed to update data. Please check the error message.', 'danger');
-            } finally {
-                spinner.classList.add('d-none');
-                submitBtn.disabled = false;
+                // Hide any existing results
+                const resultDiv = document.getElementById('result');
+                if (resultDiv) {
+                    resultDiv.style.display = 'none';
+                }
+                
+                // Scroll to error message
+                errorDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
+        // Show loading state
+        function showLoading(show = true) {
+            const searchButton = document.getElementById('searchButton');
+            const searchButtonText = document.getElementById('searchButtonText');
+            const searchSpinner = document.getElementById('searchSpinner');
+            
+            if (searchButton && searchButtonText && searchSpinner) {
+                searchButton.disabled = show;
+                searchButtonText.textContent = show ? 'Searching...' : 'Search';
+                if (show) {
+                    searchSpinner.classList.remove('d-none');
+                } else {
+                    searchSpinner.classList.add('d-none');
+                }
             }
         }
         
@@ -692,7 +458,11 @@
             toastContainer.appendChild(toast);
             
             // Initialize Bootstrap toast
-            const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 5000 });
+            const bsToast = new bootstrap.Toast(toast, {
+                autohide: true,
+                delay: 5000
+            });
+            
             bsToast.show();
             
             // Auto-remove the toast after it's hidden
@@ -700,455 +470,142 @@
                 toast.remove();
             });
         }
-    <!-- Toast container for notifications -->
-    <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
-    
-    <script>
-        // Global variables
-        let currentSearchQuery = '';
         
-        // Set search query from quick search buttons
-        function setSearchQuery(query) {
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                searchInput.value = query;
-                searchInput.focus();
-            }
+        // Show password prompt
+        async function showPasswordPrompt() {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.id = 'passwordModal';
+                modal.tabIndex = '-1';
+                modal.innerHTML = `
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Enter Password</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="passwordInputField" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="passwordInputField" placeholder="Enter password">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="confirmPassword">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                const modalInstance = new bootstrap.Modal(modal);
+                
+                modalInstance.show();
+                
+                const confirmBtn = modal.querySelector('#confirmPassword');
+                const passwordInput = modal.querySelector('#passwordInputField');
+                
+                // Focus password field when modal is shown
+                modal.addEventListener('shown.bs.modal', () => {
+                    passwordInput.focus();
+                });
+                
+                // Handle confirm button click
+                confirmBtn.addEventListener('click', () => {
+                    const password = passwordInput.value.trim();
+                    if (password) {
+                        modalInstance.hide();
+                        document.body.removeChild(modal);
+                        resolve(password);
+                    } else {
+                        showError('Please enter a password');
+                    }
+                });
+                
+                // Handle Enter key in password field
+                passwordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        confirmBtn.click();
+                    }
+                });
+                
+                // Clean up when modal is hidden
+                modal.addEventListener('hidden.bs.modal', () => {
+                    if (document.body.contains(modal)) {
+                        document.body.removeChild(modal);
+                    }
+                    resolve(null);
+                });
+            });
         }
         
-        // Search for Deerwalk specifically
-        function searchDeerwalk() {
-            setSearchQuery('Deerwalk');
-            searchApp();
-        }
-        
-        // Search for an app
-        async function searchApp() {
-            const query = document.getElementById('searchInput')?.value.trim();
-            const resultDiv = document.getElementById('result');
-            const errorDiv = document.getElementById('error');
+        // Perform manual search with password
+        async function performManualSearch() {
+            const password = await showPasswordPrompt();
+            if (!password) return;
             
-            if (!query) {
-                showError('Please enter an app name');
-                return;
-            }
+            const modal = document.getElementById('manualSearchModal');
+            const statusElement = document.getElementById('manualSearchStatus');
+            const submitBtn = document.getElementById('manualSearchSubmit');
+            const spinner = document.getElementById('manualSearchSpinner');
             
-            // Show loading state
-            const searchButton = document.getElementById('searchButton');
-            if (searchButton) {
-                searchButton.disabled = true;
-                const spinner = searchButton.querySelector('.spinner-border');
-                const buttonText = searchButton.querySelector('span:last-child');
-                if (spinner) spinner.classList.remove('d-none');
-                if (buttonText) buttonText.textContent = 'Searching...';
-            }
-            
-            if (resultDiv) resultDiv.style.display = 'none';
-            if (errorDiv) errorDiv.style.display = 'none';
+            // Reset and show status
+            statusElement.className = 'alert alert-info';
+            statusElement.innerHTML = 'Updating data, please wait...';
+            statusElement.classList.remove('d-none');
+            spinner.classList.remove('d-none');
+            submitBtn.disabled = true;
             
             try {
-                const response = await fetch('/search', {
+                const response = await fetch('/manual-search', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ query }),
+                    body: JSON.stringify({
+                        app_name: 'Deerwalk',
+                        password: password
+                    })
                 });
                 
-                const data = await response.json();
+                const result = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to fetch app data');
+                if (response.ok && result.success) {
+                    statusElement.className = 'alert alert-success';
+                    statusElement.innerHTML = `
+                        ${result.message || 'Data updated successfully'}
+                        <div class="mt-2">${result.timestamp || ''}</div>
+                    `;
+                    
+                    // Close the modal after a delay
+                    setTimeout(() => {
+                        const modalInstance = bootstrap.Modal.getInstance(modal);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
+                        // Refresh the page to show updated data
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || 'Failed to update data');
                 }
-                
-                displayResult(data);
             } catch (error) {
-                console.error('Search error:', error);
-                showError(error.message || 'An error occurred while searching');
-            } finally {
-                // Hide loading state
-                const searchButton = document.getElementById('searchButton');
-                if (searchButton) {
-                    searchButton.disabled = false;
-                    const spinner = searchButton.querySelector('.spinner-border');
-                    const buttonText = searchButton.querySelector('span:last-child');
-                    if (spinner) spinner.classList.add('d-none');
-                    if (buttonText) buttonText.textContent = 'Search';
-                }
-            }
-        }
-        
-        // Display search results
-        function displayResult(data) {
-            const resultDiv = document.getElementById('result');
-            if (!resultDiv) return;
-            
-            if (data.error) {
-                showError(data.error);
-                return;
-            }
-            
-            // Format the result HTML
-            resultDiv.innerHTML = `
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <img src="${data.icon || 'https://via.placeholder.com/100'}" 
-                                 alt="${data.title || 'App'} icon" 
-                                 class="rounded me-3" 
-                                 style="width: 100px; height: 100px; object-fit: contain;">
-                            <div>
-                                <h2 class="h4 mb-1">${data.title || 'N/A'}</h2>
-                                <p class="text-muted mb-2">${data.developer || 'N/A'}</p>
-                                <div class="d-flex gap-3 text-muted small">
-                                    <span><i class="fas fa-download me-1"></i> ${data.installs || 'N/A'}</span>
-                                    <span><i class="fas fa-star text-warning me-1"></i> ${data.score || 'N/A'}</span>
-                                    <span><i class="fas fa-calendar-alt me-1"></i> ${data.updated || 'N/A'}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="p-3 bg-light rounded">
-                                    <h6 class="text-uppercase text-muted small mb-2">App Details</h6>
-                                    <dl class="mb-0">
-                                        <dt class="small text-muted">Version</dt>
-                                        <dd class="mb-2">${data.version || 'N/A'}</dd>
-                                        <dt class="small text-muted">Size</dt>
-                                        <dd class="mb-2">${data.size || 'N/A'}</dd>
-                                        <dt class="small text-muted">Last Updated</dt>
-                                        <dd class="mb-2">${data.updated || 'N/A'}</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="p-3 bg-light rounded">
-                                    <h6 class="text-uppercase text-muted small mb-2">Ratings &amp; Installs</h6>
-                                    <dl class="mb-0">
-                                        <dt class="small text-muted">Ratings</dt>
-                                        <dd class="mb-2">${data.ratings ? data.ratings.toLocaleString() : 'N/A'}</dd>
-                                        <dt class="small text-muted">Score</dt>
-                                        <dd class="mb-2">${data.score || 'N/A'}</dd>
-                                        <dt class="small text-muted">Installs</dt>
-                                        <dd class="mb-2">${data.installs || 'N/A'}</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                        ${data.description ? `
-                        <div class="mt-4">
-                            <h6 class="text-uppercase text-muted small mb-2">Description</h6>
-                            <p class="mb-0">${data.description}</p>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            
-            resultDiv.style.display = 'block';
-        }
-        
-        // Show error message
-        function showError(message) {
-            const errorDiv = document.getElementById('error');
-            if (!errorDiv) return;
-            
-            errorDiv.innerHTML = `
-                <div class="alert alert-danger d-flex align-items-center mb-0" role="alert">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    <div>${message}</div>
-                </div>
-            `;
-            errorDiv.style.display = 'block';
-            
-            // Hide the error after 5 seconds
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
-        }
-        
-        // Initialize the page when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add event listeners
-            const searchButton = document.getElementById('searchButton');
-            const searchInput = document.getElementById('searchInput');
-            
-            if (searchButton) {
-                searchButton.addEventListener('click', searchApp);
-            }
-            
-            if (searchInput) {
-                searchInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        searchApp();
-                    }
-                });
+                console.error('Manual search error:', error);
+                statusElement.className = 'alert alert-danger';
+                statusElement.innerHTML = `
+                    ${error.message || 'An error occurred while updating data'}
+                    <div class="mt-2">Please try again or check the logs for more information.</div>
+                `;
                 
-                // Focus search input on page load
-                searchInput.focus();
-            }
-            
-            // Initialize Bootstrap tooltips
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        });
-        
-        // Show error message
-        function showError(message) {
-            const errorDiv = document.getElementById('error');
-            const errorMessage = document.getElementById('errorMessage');
-            
-            errorMessage.textContent = message;
-            errorDiv.style.display = 'flex';
-            
-            // Hide the error after 5 seconds
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
-        }
-        
-        // Show loading state
-        function showLoading(show = true) {
-            const searchButton = document.getElementById('searchButton');
-            const spinner = searchButton.querySelector('.spinner-border');
-            const buttonText = searchButton.querySelector('span:last-child');
-            
-            if (show) {
-                searchButton.disabled = true;
-                spinner.classList.remove('d-none');
-                buttonText.textContent = 'Searching...';
-            } else {
-                searchButton.disabled = false;
+                // Show toast notification
+                showToast('Failed to update data. Please check the error message.', 'danger');
+            } finally {
                 spinner.classList.add('d-none');
-                buttonText.textContent = 'Search';
+                submitBtn.disabled = false;
             }
         }
-        
-        // Format number with commas
-        function formatNumber(num) {
-            if (num === 'N/A' || num === undefined || num === null) return 'N/A';
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
-        
-        // Format date
-        function formatDate(dateString) {
-            if (!dateString) return 'N/A';
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) return 'N/A';
-                return date.toLocaleDateString(undefined, { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                });
-            } catch (e) {
-                return 'N/A';
-            }
-        }
-    </script>
-    
-    <style>
-        /* Toast notifications */
-        .toast {
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-        }
-        
-        .toast.show {
-            opacity: 1;
-        }
-        
-        .toast-header {
-            border-radius: 0.25rem 0.25rem 0 0;
-        }
-        
-        .toast-body {
-            border-radius: 0 0 0.25rem 0.25rem;
-        }
-        
-        /* App card styles */
-        .app-card {
-            background: #fff;
-            border-radius: 0.75rem;
-            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-            margin: 2rem auto;
-            max-width: 800px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .app-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.12);
-        }
-        
-        .app-header {
-            padding: 2rem;
-            border-bottom: 1px solid #f0f0f0;
-            background: linear-gradient(135deg, #f8f9fc 0%, #f1f3f9 100%);
-        }
-        
-        .app-icon {
-            width: 100px;
-            height: 100px;
-            border-radius: 1.5rem;
-            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
-            margin-right: 1.5rem;
-            object-fit: contain;
-        }
-        
-        .app-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #2d3748;
-            margin: 0 0 0.5rem;
-        }
-        
-        .app-developer {
-            color: #718096;
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .app-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        
-        .meta-item {
-            display: flex;
-            align-items: center;
-            font-size: 0.95rem;
-            color: #4a5568;
-            background: rgba(255, 255, 255, 0.7);
-            padding: 0.4rem 0.8rem;
-            border-radius: 1rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-        
-        .meta-item i {
-            margin-right: 0.4rem;
-            color: var(--primary-color);
-        }
-        
-        .app-details {
-            padding: 2rem;
-        }
-        
-        .detail-row {
-            display: flex;
-            margin-bottom: 1.25rem;
-            padding-bottom: 1.25rem;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .detail-row:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
-        
-        .detail-label {
-            font-weight: 600;
-            color: #4a5568;
-            width: 140px;
-            flex-shrink: 0;
-        }
-        
-        .detail-value {
-            flex: 1;
-            color: #2d3748;
-            line-height: 1.6;
-        }
-        
-        /* Badge styles */
-        .badge {
-            padding: 0.4em 0.8em;
-            font-weight: 600;
-            border-radius: 0.5rem;
-            font-size: 0.9em;
-        }
-        
-        .badge-installs {
-            background-color: rgba(66, 153, 225, 0.1);
-            color: #3182ce;
-        }
-        
-        .badge-rating {
-            background-color: rgba(72, 187, 120, 0.1);
-            color: #38a169;
-        }
-        
-        .badge-updated {
-            background-color: rgba(159, 122, 234, 0.1);
-            color: #6b46c1;
-        }
-        
-        .badge-version {
-            background-color: rgba(246, 173, 85, 0.1);
-            color: #d69e2e;
-        }
-        
-        .badge-size {
-            background-color: rgba(237, 100, 104, 0.1);
-            color: #e53e3e;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .app-header {
-                flex-direction: column;
-                text-align: center;
-                padding: 1.5rem;
-            }
-            
-            .app-icon {
-                margin: 0 auto 1.25rem;
-            }
-            
-            .app-meta {
-                justify-content: center;
-            }
-            
-            .detail-row {
-                flex-direction: column;
-            }
-            
-            .detail-label {
-                width: 100%;
-                margin-bottom: 0.5rem;
-            }
-        }
-        
-        /* Footer styles */
-        .footer-container {
-            margin-top: 3rem;
-            padding: 2rem 0;
-            background-color: #f8f9fa;
-            border-top: 1px solid #e9ecef;
-            text-align: center;
-        }
-        
-        .footer-container a {
-            color: #6c757d;
-            transition: color 0.2s;
-        }
-        
-        .footer-container a:hover {
-            color: #4285f4;
-            text-decoration: none;
-        }
-    </style>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-            }
-        });
     </script>
 </body>
 </html>
