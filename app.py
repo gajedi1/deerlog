@@ -430,28 +430,64 @@ def scheduled_search():
         next_run = datetime.now() + timedelta(hours=2)
         app.logger.info(f"Next scheduled search at: {next_run}")
 
-@app.route('/manual_search', methods=['POST'])
+@app.route('/manual-search', methods=['POST'])
 @password_required
 def manual_search():
     """Endpoint for manually triggering a search with password protection"""
-    if 'password' not in request.form or request.form['password'] != config.PASSWORD:
-        return jsonify({
-            'success': False,
-            'error': 'Incorrect or missing password'
-        }), 403
+    try:
+        app.logger.info("Manual search triggered")
         
-    success, message = perform_search()
-    
-    if success:
-        return jsonify({
-            'success': True,
-            'message': message,
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        })
-    else:
+        # Get the app name from the request
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            
+        app_name = data.get('app_name', 'Deerwalk')
+        password = data.get('password')
+        
+        # Verify password
+        if not password or password != config.PASSWORD:
+            return jsonify({
+                'success': False,
+                'error': 'Incorrect password',
+                'requires_auth': True
+            }), 401
+        
+        # Perform the search
+        result = get_app_info(app_name)
+        
+        if result.get('success', False):
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            app.logger.info(f"Manual search completed successfully at {timestamp}")
+            return jsonify({
+                'success': True,
+                'message': 'Data updated successfully',
+                'timestamp': timestamp,
+                'data': {
+                    'app_name': app_name,
+                    'installs': result.get('installs', 'N/A'),
+                    'real_installs': result.get('realInstalls', 'N/A'),
+                    'score': result.get('score', 'N/A'),
+                    'ratings': result.get('ratings', 'N/A')
+                }
+            })
+        else:
+            error_msg = result.get('error', 'Failed to update data')
+            app.logger.error(f"Manual search failed: {error_msg}")
+            return jsonify({
+                'success': False,
+                'error': error_msg,
+                'details': str(result.get('details', ''))
+            }), 400
+            
+    except Exception as e:
+        error_msg = f'An error occurred: {str(e)}'
+        app.logger.error(f"Error in manual search: {error_msg}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': message
+            'error': error_msg,
+            'details': str(e),
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }), 500
 
 # Schedule the job to run every 2 hours
