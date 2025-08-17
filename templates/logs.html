@@ -4,9 +4,199 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Search Logs</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #1cc88a;
+            --dark-color: #5a5c69;
+            --light-color: #f8f9fc;
+            --danger-color: #e74a3b;
+            --warning-color: #f6c23e;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header {
+            background-color: #f8f9fc;
+            border-bottom: 1px solid #e3e6f0;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .log-entry {
+            border-left: 4px solid var(--primary-color);
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 0.35rem;
+            transition: all 0.2s;
+        }
+        
+        .log-entry:hover {
+            transform: translateX(5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+        
+        .log-entry.error {
+            border-left-color: var(--danger-color);
+        }
+        
+        .log-entry.warning {
+            border-left-color: var(--warning-color);
+        }
+        
+        .log-entry.debug {
+            border-left-color: #36b9cc;
+        }
+        
+        .log-timestamp {
+            color: #858796;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+        
+        .log-level {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.35rem;
+            text-transform: uppercase;
+        }
+        
+        .log-level.INFO { 
+            background-color: #e8f5e9;
+            color: #1cc88a;
+        }
+        
+        .log-level.WARNING { 
+            background-color: #fef5e7;
+            color: #f6c23e;
+        }
+        
+        .log-level.ERROR { 
+            background-color: #fde8e8;
+            color: #e74a3b;
+        }
+        
+        .log-level.DEBUG { 
+            background-color: #e6f7ff;
+            color: #36b9cc;
+        }
+        
+        .search-result {
+            margin-bottom: 1.5rem;
+            padding: 1.25rem;
+            background: white;
+            border-radius: 0.35rem;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .search-result.error {
+            border-left-color: var(--danger-color);
+        }
+        
+        .result-title {
+            font-weight: 600;
+            color: #4e73df;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        
+        .result-meta {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+        
+        .badge {
+            font-weight: 500;
+            padding: 0.35em 0.65em;
+            font-size: 75%;
+        }
+        
+        .nav-tabs .nav-link {
+            color: #6e707e;
+            font-weight: 600;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            background-color: transparent;
+            border-color: transparent;
+            border-bottom: 3px solid var(--primary-color);
+        }
+        
+        .nav-tabs {
+            border-bottom: 1px solid #e3e6f0;
+        }
+        
+        .countdown-timer {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            min-width: 100px;
+            justify-content: center;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .countdown-timer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+        }
+        
+        .countdown-timer i {
+            margin-right: 0.5rem;
+        }
+        
+        .log-container {
+            max-height: 60vh;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #b7b9cc;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #858796;
+        }
         .log-container {
             margin-top: 20px;
             max-height: 70vh;
@@ -126,113 +316,301 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Application Logs</h1>
-            <a href="/" class="view-logs">
-                <i class="fas fa-arrow-left"></i> Back to Search
-            </a>
+    <div class="container-fluid py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-search-location text-primary me-2"></i>App Search Monitor
+                </h1>
+                <p class="text-muted mb-0">Track and analyze app search results over time</p>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <div class="text-end">
+                        <div class="small text-muted">Next scheduled search:</div>
+                        <div id="nextSearchTime" class="fw-bold">--:--:--</div>
+                    </div>
+                </div>
+                <div id="nextSearchTimer" class="countdown-timer">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    <span id="countdown">--:--:--</span>
+                </div>
+                <a href="/" class="btn btn-outline-primary ms-3">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Search
+                </a>
+            </div>
         </div>
 
-        <div class="tab-container">
-            <div class="tab-buttons">
-                <button class="tab-button active" onclick="showTab('app-logs')">Application Logs</button>
-                <button class="tab-button" onclick="showTab('search-results')">Daily Search Results</button>
-            </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Search Analytics</h6>
+                        <div>
+                            <button id="refreshBtn" class="btn btn-sm btn-primary me-2">
+                                <i class="fas fa-sync-alt me-1"></i> Refresh
+                            </button>
+                            <button id="exportBtn" class="btn btn-sm btn-success me-2">
+                                <i class="fas fa-file-export me-1"></i> Export All Data
+                            </button>
+                            <button onclick="clearLogs()" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash me-1"></i> Clear Logs
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="app-logs-tab" data-bs-toggle="tab" data-bs-target="#app-logs" type="button" role="tab" aria-controls="app-logs" aria-selected="true">
+                                    <i class="fas fa-list-ul me-2"></i>Application Logs
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="search-results-tab" data-bs-toggle="tab" data-bs-target="#search-results" type="button" role="tab" aria-controls="search-results" aria-selected="false">
+                                    <i class="fas fa-chart-line me-2"></i>Search Results
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content" id="myTabContent">
+                            <div class="tab-pane fade show active" id="app-logs" role="tabpanel" aria-labelledby="app-logs-tab">
 
-            <div id="app-logs" class="tab-content active">
-                <div class="controls">
-                    <button onclick="clearLogs()" class="btn btn-clear">
-                        <i class="fas fa-trash"></i> Clear Application Logs
-                    </button>
-                </div>
-
-                <div class="log-container">
-                    {% if app_logs %}
-                        {% for log in app_logs %}
-                            {% set log_parts = log.split(' ', 3) %}
-                            {% if log_parts|length >= 4 %}
-                                <div class="log-entry {{ 'error' if 'ERROR' in log_parts[2] else 'warning' if 'WARNING' in log_parts[2] else 'debug' if 'DEBUG' in log_parts[2] else '' }}">
-                                    <div class="log-header">
-                                        <span class="log-timestamp">{{ log_parts[0] }} {{ log_parts[1] }}</span>
-                                        <span class="log-level {{ log_parts[2] }}">{{ log_parts[2] }}</span>
-                                    </div>
-                                    <div class="log-message">{{ log_parts[3:]|join(' ') }}</div>
-                                </div>
-                            {% else %}
-                                <div class="log-entry">{{ log }}</div>
-                            {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        <p>No application logs found.</p>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div id="search-results" class="tab-content">
-                <div class="search-results">
-                    {% if daily_logs %}
-                        {% for date, searches in daily_logs.items() %}
-                            <h3 class="log-date">
-                                <i class="far fa-calendar-alt"></i> {{ date }}
-                                <span class="badge">{{ searches|length }} search{{ 'es' if searches|length != 1 else '' }}</span>
-                            </h3>
-                            
-                            {% for search in searches %}
-                                <div class="search-result">
-                                    <div class="result-meta">
-                                        <i class="far fa-clock"></i> {{ search.timestamp }}
-                                    </div>
-                                    
-                                    {% if 'error' in search.result %}
-                                        <div class="result-item error">
-                                            <div class="result-title">Error</div>
-                                            <div>{{ search.result.error }}</div>
-                                        </div>
-                                    {% else %}
-                                        <div class="result-item">
-                                            <div class="result-title">{{ search.result.title }}</div>
-                                            <div class="result-meta">
-                                                <span><i class="fas fa-user-tie"></i> {{ search.result.developer }}</span> |
-                                                <span><i class="fas fa-download"></i> {{ search.result.installs }}</span> |
-                                                <span><i class="fas fa-star"></i> {{ search.result.score }} ({{ search.result.ratings }} ratings)</span>
-                                            </div>
-                                            {% if search.result.realInstalls %}
-                                                <div class="result-meta">
-                                                    <i class="fas fa-chart-line"></i> Real Installs: {{ search.result.realInstalls|number_format }}
+                                <div class="log-container">
+                                    {% if app_logs %}
+                                        {% for log in app_logs %}
+                                            {% set log_parts = log.split(' ', 3) %}
+                                            {% if log_parts|length >= 4 %}
+                                                <div class="log-entry {{ 'error' if 'ERROR' in log_parts[2] else 'warning' if 'WARNING' in log_parts[2] else 'debug' if 'DEBUG' in log_parts[2] else '' }}">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <div>
+                                                            <span class="log-timestamp">{{ log_parts[0] }} {{ log_parts[1] }}</span>
+                                                            <span class="log-level {{ log_parts[2] }}">{{ log_parts[2] }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="log-message">{{ log_parts[3:]|join(' ') }}</div>
                                                 </div>
+                                            {% else %}
+                                                <div class="log-entry">{{ log }}</div>
                                             {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-center py-5">
+                                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted">No application logs found</p>
                                         </div>
                                     {% endif %}
                                 </div>
-                            {% endfor %}
-                        {% endfor %}
-                    {% else %}
-                        <p>No search results found. The first automated search will run at 11:00 AM Nepal time.</p>
-                    {% endif %}
+            </div>
+
+                            </div>
+                            <div class="tab-pane fade" id="search-results" role="tabpanel" aria-labelledby="search-results-tab">
+                                <div class="search-results">
+                                    {% if daily_logs %}
+                                        {% for date, searches in daily_logs.items() %}
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h5 class="mb-0">
+                                                    <i class="far fa-calendar-alt text-primary me-2"></i>{{ date }}
+                                                </h5>
+                                                <span class="badge bg-primary">{{ searches|length }} search{{ 'es' if searches|length != 1 else '' }}</span>
+                                            </div>
+                                            
+                                            <div class="row">
+                                                {% for search in searches %}
+                                                    <div class="col-md-6 mb-4">
+                                                        <div class="search-result h-100">
+                                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                <span class="text-muted small">
+                                                                    <i class="far fa-clock me-1"></i> {{ search.timestamp }}
+                                                                </span>
+                                                                {% if 'error' not in search.result %}
+                                                                    <span class="badge bg-success">
+                                                                        <i class="fas fa-check-circle me-1"></i>Success
+                                                                    </span>
+                                                                {% endif %}
+                                                            </div>
+                                                            
+                                                            {% if 'error' in search.result %}
+                                                                <div class="alert alert-danger py-2">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                                                        <div>
+                                                                            <strong>Error:</strong> {{ search.result.error }}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            {% else %}
+                                                                <h5 class="result-title mb-2">
+                                                                    <i class="fas fa-mobile-alt me-2 text-primary"></i>{{ search.result.title }}
+                                                                </h5>
+                                                                <div class="result-meta mb-2">
+                                                                    <span class="d-inline-flex align-items-center me-3">
+                                                                        <i class="fas fa-user-tie me-1 text-primary"></i> {{ search.result.developer }}
+                                                                    </span>
+                                                                </div>
+                                                                
+                                                                <div class="d-flex flex-wrap gap-3 mb-2">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <div class="bg-soft-primary rounded p-2 me-2">
+                                                                            <i class="fas fa-download text-primary"></i>
+                                                                        </div>
+                                                                        <div>
+                                                                            <div class="text-muted small">Installs</div>
+                                                                            <div class="fw-bold">{{ search.result.installs }}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                        
+                                                                    <div class="d-flex align-items-center">
+                                                                        <div class="bg-soft-warning rounded p-2 me-2">
+                                                                            <i class="fas fa-star text-warning"></i>
+                                                                        </div>
+                                                                        <div>
+                                                                            <div class="text-muted small">Rating</div>
+                                                                            <div class="fw-bold">{{ search.result.score }} ({{ search.result.ratings }})</div>
+                                                                        </div>
+                                                                    </div>
+                                                                        
+                                                                    {% if search.result.realInstalls and search.result.realInstalls != 'N/A' and search.result.realInstalls != 0 %}
+                                                                    <div class="d-flex align-items-center">
+                                                                        <div class="bg-soft-success rounded p-2 me-2">
+                                                                            <i class="fas fa-chart-line text-success"></i>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center">
+                                                                            <div>
+                                                                                <div class="text-muted small">Real Installs</div>
+                                                                                <div class="fw-bold real-installs d-inline" data-value="{{ search.result.realInstalls }}">
+                                                                                    {{ search.result.realInstalls }}
+                                                                                </div>
+                                                                            </div>
+                                                                            <button class="btn btn-sm btn-outline-secondary ms-2 copy-installs" data-value="{{ search.result.realInstalls }}" 
+                                                                                    title="Copy to clipboard">
+                                                                                <i class="far fa-copy"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-center py-5">
+                                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                            <h5 class="text-muted">No search results found</h5>
+                                            <p class="text-muted">The first automated search will run soon</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        function showTab(tabId) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
             });
             
-            // Deactivate all tab buttons
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
+            // Auto-scroll to bottom of logs
+            const logContainers = document.querySelectorAll('.log-container');
+            logContainers.forEach(container => {
+                container.scrollTop = container.scrollHeight;
             });
             
-            // Activate the selected tab and button
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            // Initialize countdown timer
+            updateNextSearchTime();
+            setInterval(updateNextSearchTime, 1000);
             
-            // Save the active tab to localStorage
-            localStorage.setItem('activeLogTab', tabId);
+            // Refresh button functionality
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                window.location.reload();
+            });
+        });
+        
+        // Update next search countdown
+        function updateNextSearchTime() {
+            const now = new Date();
+            let nextSearch = new Date(now);
+            
+            // Calculate next search time (every 2 hours from app start)
+            // Get the number of 2-hour intervals since epoch
+            const hoursSinceEpoch = Math.floor(now.getTime() / (1000 * 60 * 60));
+            const intervalsSinceEpoch = Math.floor(hoursSinceEpoch / 2);
+            
+            // Calculate the next interval
+            const nextInterval = intervalsSinceEpoch + 1;
+            
+            // Convert back to milliseconds and create a date
+            const nextSearchMs = nextInterval * 2 * 60 * 60 * 1000;
+            nextSearch = new Date(0);
+            nextSearch.setUTCHours(0, 0, 0, 0);
+            nextSearch.setTime(nextSearch.getTime() + nextSearchMs);
+            
+            // If we're very close to the next interval, add 2 hours to avoid showing 0:00:00
+            const timeUntilNext = nextSearch - now;
+            if (timeUntilNext < 1000) {  // Less than 1 second
+                nextSearch.setHours(nextSearch.getHours() + 2);
+            }
+            
+            const diffMs = nextSearch - now;
+            const diffSec = Math.floor(diffMs / 1000);
+            const hours = Math.floor(diffSec / 3600);
+            const minutes = Math.floor((diffSec % 3600) / 60);
+            const seconds = diffSec % 60;
+            
+            const countdownEl = document.getElementById('countdown');
+            const timerContainer = document.getElementById('nextSearchTimer');
+            const nextSearchTimeEl = document.getElementById('nextSearchTime');
+            
+            if (countdownEl && nextSearchTimeEl) {
+                // Update countdown display
+                countdownEl.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Update next search time display
+                const options = { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                };
+                nextSearchTimeEl.textContent = nextSearch.toLocaleTimeString(undefined, options);
+                
+                // Show the timer if it's hidden (shouldn't be needed anymore)
+                if (timerContainer && timerContainer.classList.contains('d-none')) {
+                    timerContainer.classList.remove('d-none');
+                }
+                
+                // Update tooltip with full date and time
+                const nextSearchTime = nextSearch.toLocaleString();
+                if (timerContainer) {
+                    timerContainer.setAttribute('title', `Next search at: ${nextSearchTime}`);
+                    // Initialize tooltip if not already done
+                    if (!timerContainer.hasAttribute('data-bs-original-title')) {
+                        new bootstrap.Tooltip(timerContainer);
+                    }
+                }
+                
+                // Update countdown color based on time remaining
+                if (hours < 1) {
+                    timerContainer.style.background = 'var(--danger-color)';
+                } else if (hours < 2) {
+                    timerContainer.style.background = 'var(--warning-color)';
+                } else {
+                    timerContainer.style.background = 'var(--primary-color)';
+                }
+            }
         }
         
         function clearLogs() {
@@ -247,48 +625,228 @@
                 .then(data => {
                     if (data.status === 'success') {
                         const logContainer = document.querySelector('#app-logs .log-container');
-                        logContainer.innerHTML = '<div class="log-entry">Application logs have been cleared.</div>';
+                        logContainer.innerHTML = `
+                            <div class="text-center py-5">
+                                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                <p class="text-muted">Application logs have been cleared</p>
+                            </div>`;
                         
-                        // Show a temporary success message
-                        const successMsg = document.createElement('div');
-                        successMsg.className = 'alert alert-success';
-                        successMsg.textContent = 'Application logs cleared successfully';
-                        document.querySelector('#app-logs').prepend(successMsg);
-                        
-                        // Remove the message after 3 seconds
-                        setTimeout(() => {
-                            successMsg.remove();
-                        }, 3000);
+                        // Show success toast
+                        showToast('Logs cleared successfully', 'success');
                     } else {
-                        alert('Error clearing logs: ' + data.message);
+                        showToast('Error: ' + data.message, 'danger');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error clearing logs. Check console for details.');
+                    showToast('Error clearing logs', 'danger');
                 });
             }
         }
-
-        // Restore the active tab from localStorage when the page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const activeTab = localStorage.getItem('activeLogTab') || 'app-logs';
-            const tabButton = document.querySelector(`.tab-button[onclick*="${activeTab}"]`);
-            if (tabButton) {
-                tabButton.click();
-            }
+        
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer') || createToastContainer();
             
-            // Auto-scroll to bottom of logs
-            const logContainers = document.querySelectorAll('.log-container');
-            logContainers.forEach(container => {
-                container.scrollTop = container.scrollHeight;
-            });
-        });
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type} border-0 show`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Auto-remove toast after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 5000);
+        }
+        
+        // Create toast container if it doesn't exist
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'position-fixed bottom-0 end-0 p-3';
+            container.style.zIndex = '11';
+            
+            const toastStyle = document.createElement('style');
+            toastStyle.textContent = `
+                .toast {
+                    opacity: 1;
+                    transition: opacity 0.3s ease-in-out;
+                }
+                .toast:not(.show) {
+                    opacity: 0;
+                }
+            `;
+            
+            document.head.appendChild(toastStyle);
+            document.body.appendChild(container);
+            return container;
+        }
         
         // Format numbers with commas
         Number.prototype.numberFormat = function() {
             return this.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         };
+        
+        // Add number format filter to handle template rendering
+        function numberFormat(value) {
+            if (value === undefined || value === null || value === 'N/A') return 'N/A';
+            return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        // Handle export button click
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            // Show loading state
+            const icon = this.querySelector('i');
+            const originalIcon = icon.className;
+            const originalText = this.innerHTML;
+            
+            icon.className = 'fas fa-spinner fa-spin me-1';
+            this.disabled = true;
+            
+            // Make API request to export data
+            fetch('/logs/export/real_installs')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Export failed');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // Create download link
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `real_installs_export_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    // Show success message
+                    showToast('Export completed successfully!', 'success');
+                })
+                .catch(error => {
+                    console.error('Export error:', error);
+                    showToast('Failed to export data', 'danger');
+                })
+                .finally(() => {
+                    // Restore button state
+                    icon.className = originalIcon;
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                });
+        });
+        
+        // Format real installs numbers on page load and setup copy buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Format numbers
+            const realInstallsElements = document.querySelectorAll('.real-installs');
+            realInstallsElements.forEach(el => {
+                const value = el.getAttribute('data-value');
+                if (value && !isNaN(value)) {
+                    el.textContent = parseInt(value).toLocaleString();
+                }
+            });
+
+            // Add copy functionality
+            document.querySelectorAll('.copy-installs').forEach(button => {
+                button.addEventListener('click', function() {
+                    const value = this.getAttribute('data-value');
+                    if (value) {
+                        navigator.clipboard.writeText(value)
+                            .then(() => {
+                                // Change icon to checkmark temporarily
+                                const icon = this.querySelector('i');
+                                const originalIcon = icon.className;
+                                icon.className = 'fas fa-check';
+                                this.disabled = true;
+                                
+                                // Show success message
+                                showToast('Copied to clipboard!', 'success');
+                                
+                                // Revert after 2 seconds
+                                setTimeout(() => {
+                                    icon.className = originalIcon;
+                                    this.disabled = false;
+                                }, 2000);
+                            })
+                            .catch(err => {
+                                console.error('Failed to copy: ', err);
+                                showToast('Failed to copy', 'danger');
+                            });
+                    }
+                });
+            });
+        });
     </script>
+    
+    <!-- Footer -->
+    <footer class="text-center text-muted py-3">
+        <div class="container">
+            <p class="mb-0">Made with ❤️ by Samir Ghimire</p>
+        </div>
+    </footer>
+    
+    <!-- Toast container for notifications -->
+    <div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index: 11"></div>
+    
+    <style>
+        /* Toast styles */
+        .toast {
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+            margin-bottom: 1rem;
+        }
+        
+        .toast:not(.show) {
+            opacity: 0;
+        }
+        
+        /* Custom scrollbar for log containers */
+        .log-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .log-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .log-container::-webkit-scrollbar-thumb {
+            background: #b7b9cc;
+            border-radius: 10px;
+        }
+        
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: #858796;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .d-flex.flex-wrap.gap-3 {
+                gap: 1rem !important;
+            }
+            
+            .col-md-6 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
 </body>
 </html>
