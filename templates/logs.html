@@ -360,7 +360,7 @@
                             <button id="exportBtn" class="btn btn-sm btn-success me-2">
                                 <i class="fas fa-file-export me-1"></i> Export All Data
                             </button>
-                            <button onclick="clearLogs()" class="btn btn-sm btn-outline-danger">
+                            <button onclick="showDeleteConfirmation()" class="btn btn-sm btn-outline-danger">
                                 <i class="fas fa-trash me-1"></i> Clear Logs
                             </button>
                         </div>
@@ -519,26 +519,72 @@
     </div>
 
     <!-- Manual Search Modal -->
-    <div class="modal fade" id="manualSearchModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+    <div class="modal fade" id="manualSearchModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Manual Update</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sync-alt me-2"></i>Manual Data Update
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>This will manually fetch the latest data for Deerwalk and log it.</p>
-                    <div class="mb-3">
-                        <label for="passwordInput" class="form-label">Enter password to continue:</label>
-                        <input type="password" class="form-control" id="passwordInput" required>
+                    <div id="manualSearchStatus" class="alert d-none mb-3"></div>
+                    <div id="manualSearchForm">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-lock fa-3x text-primary mb-3"></i>
+                            <p class="mb-0">Please enter the password to manually update the data</p>
+                        </div>
+                        <div class="mb-4">
+                            <label for="passwordInput" class="form-label fw-bold">Password</label>
+                            <input type="password" class="form-control form-control-lg" id="passwordInput" placeholder="Enter password" autocomplete="current-password">
+                        </div>
                     </div>
-                    <div id="manualSearchStatus" class="alert d-none"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="performManualSearch()">
-                        <span id="manualSearchSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        Update Now
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="manualSearchSubmit" onclick="performManualSearch()">
+                        <span id="manualSearchSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status" aria-hidden="true"></span>
+                        <i class="fas fa-sync-alt me-1"></i> Update Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteLogsModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="deleteStatus" class="alert d-none mb-3"></div>
+                    <div id="deleteForm">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+                            <p class="mb-1">Are you sure you want to delete all logs?</p>
+                            <p class="text-muted small mb-0">This action cannot be undone.</p>
+                        </div>
+                        <div class="mb-3">
+                            <label for="deletePassword" class="form-label fw-bold">Enter password to confirm</label>
+                            <input type="password" class="form-control" id="deletePassword" placeholder="Enter password" autocomplete="current-password">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDeleteLogs()">
+                        <span id="deleteSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status" aria-hidden="true"></span>
+                        <i class="fas fa-trash me-1"></i> Delete All Logs
                     </button>
                 </div>
             </div>
@@ -705,6 +751,81 @@
             });
         }
         
+        // Show delete logs confirmation modal
+        function showDeleteConfirmation() {
+            const modal = new bootstrap.Modal(document.getElementById('deleteLogsModal'));
+            const form = document.getElementById('deleteForm');
+            const status = document.getElementById('deleteStatus');
+            
+            // Reset form and status
+            form.style.display = 'block';
+            status.className = 'alert d-none';
+            status.innerHTML = '';
+            document.getElementById('deletePassword').value = '';
+            document.getElementById('confirmDeleteBtn').disabled = false;
+            
+            // Show the modal
+            modal.show();
+        }
+        
+        // Confirm and delete logs
+        async function confirmDeleteLogs() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteLogsModal'));
+            const form = document.getElementById('deleteForm');
+            const status = document.getElementById('deleteStatus');
+            const submitBtn = document.getElementById('confirmDeleteBtn');
+            const spinner = document.getElementById('deleteSpinner');
+            const password = document.getElementById('deletePassword').value.trim();
+            
+            if (!password) {
+                status.className = 'alert alert-warning';
+                status.innerHTML = 'Please enter the password';
+                status.classList.remove('d-none');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            spinner.classList.remove('d-none');
+            status.className = 'alert alert-info';
+            status.innerHTML = 'Deleting logs, please wait...';
+            status.classList.remove('d-none');
+            
+            try {
+                const response = await fetch('/logs/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `password=${encodeURIComponent(password)}`
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Success
+                    status.className = 'alert alert-success';
+                    status.innerHTML = 'Logs have been successfully deleted';
+                    form.style.display = 'none';
+                    
+                    // Close modal after delay
+                    setTimeout(() => {
+                        if (modal) modal.hide();
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    throw new Error(data.error || 'Failed to delete logs');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                status.className = 'alert alert-danger';
+                status.innerHTML = error.message || 'An error occurred while deleting logs';
+                submitBtn.disabled = false;
+            } finally {
+                spinner.classList.add('d-none');
+            }
+        }
+        
         async function clearLogs() {
             const password = await showPasswordPrompt();
             if (!password) return;
@@ -809,29 +930,45 @@
             return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
         
-        // Show/hide manual search modal
+        // Show manual search modal
         function showManualSearchModal() {
             const modal = new bootstrap.Modal(document.getElementById('manualSearchModal'));
+            const form = document.getElementById('manualSearchForm');
+            const status = document.getElementById('manualSearchStatus');
+            
+            // Reset form and status
+            form.style.display = 'block';
+            status.className = 'alert d-none';
+            status.innerHTML = '';
             document.getElementById('passwordInput').value = '';
-            document.getElementById('manualSearchStatus').classList.add('d-none');
+            document.getElementById('manualSearchSubmit').disabled = false;
+            
+            // Show the modal
             modal.show();
         }
         
         // Perform manual search with password
         async function performManualSearch() {
-            const password = await showPasswordPrompt();
-            if (!password) return;
-            
             const modal = bootstrap.Modal.getInstance(document.getElementById('manualSearchModal'));
-            const statusElement = document.getElementById('manualSearchStatus');    
-            const spinner = document.getElementById('manualSearchSpinner');
+            const form = document.getElementById('manualSearchForm');
+            const statusElement = document.getElementById('manualSearchStatus');
             const submitBtn = document.getElementById('manualSearchSubmit');
+            const spinner = document.getElementById('manualSearchSpinner');
+            const password = document.getElementById('passwordInput').value.trim();
             
-            // Reset and show status
-            statusElement.className = 'alert alert-info d-none';
-            statusElement.innerHTML = '';
-            spinner.classList.remove('d-none');
+            if (!password) {
+                statusElement.className = 'alert alert-warning';
+                statusElement.innerHTML = 'Please enter the password';
+                statusElement.classList.remove('d-none');
+                return;
+            }
+            
+            // Show loading state
             submitBtn.disabled = true;
+            spinner.classList.remove('d-none');
+            statusElement.className = 'alert alert-info';
+            statusElement.innerHTML = 'Updating data, please wait...';
+            statusElement.classList.remove('d-none');
             
             try {
                 const response = await fetch('/manual-search', {
@@ -848,6 +985,7 @@
                 const result = await response.json();
                 
                 if (response.ok && result.success) {
+                    // Success
                     statusElement.className = 'alert alert-success';
                     statusElement.innerHTML = `
                         <i class="fas fa-check-circle me-2"></i>
@@ -858,8 +996,12 @@
                         </div>
                     `;
                     
+                    // Hide the form
+                    form.style.display = 'none';
+                    
                     // Refresh the page after a short delay to show updated data
                     setTimeout(() => {
+                        if (modal) modal.hide();
                         window.location.reload();
                     }, 2000);
                 } else {
@@ -871,22 +1013,10 @@
                 statusElement.innerHTML = `
                     <i class="fas fa-exclamation-circle me-2"></i>
                     ${error.message || 'An error occurred while updating data'}
-                    ${error.details ? `<div class="small mt-1">${error.details}</div>` : ''}
                 `;
-                
-                // Show toast notification
-                showToast('Failed to update data. Please check the error message.', 'danger');
-            } finally {
-                statusElement.classList.remove('d-none');
-                spinner.classList.add('d-none');
                 submitBtn.disabled = false;
-                
-                // Auto-hide the modal after 3 seconds if successful
-                if (statusElement.className.includes('alert-success')) {
-                    setTimeout(() => {
-                        if (modal) modal.hide();
-                    }, 3000);
-                }
+            } finally {
+                spinner.classList.add('d-none');
             }
         }
         
