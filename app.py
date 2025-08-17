@@ -395,40 +395,74 @@ def export_real_installs():
         app.logger.error(f"Error exporting real installs: {str(e)}")
         return f"Error exporting data: {str(e)}", 500
 
+def perform_search():
+    """Perform a search for Deerwalk and log the results"""
+    try:
+        app.logger.info("Running search for 'Deerwalk'")
+        result = get_app_info('Deerwalk')
+        
+        if not result.get('success', False):
+            error_msg = result.get('error', 'Unknown error')
+            app.logger.error(f"Error in search: {error_msg}")
+            return False, error_msg
+            
+        # Log successful search
+        app_title = result.get('app', {}).get('title', 'Unknown App')
+        app.logger.info(f"Successfully fetched data for: {app_title}")
+        
+        # Log installs information
+        if 'app' in result:
+            app_data = result['app']
+            installs = app_data.get('installs', 'N/A')
+            real_installs = app_data.get('realInstalls', 'N/A')
+            score = app_data.get('score', 'N/A')
+            
+            app.logger.info(
+                f"App Stats - Installs: {installs}, "
+                f"Real Installs: {real_installs}, "
+                f"Rating: {score}"
+            )
+        
+        return True, "Search completed successfully"
+        
+    except Exception as e:
+        error_msg = f"Error in search: {str(e)}"
+        app.logger.error(error_msg, exc_info=True)
+        return False, error_msg
+
 def scheduled_search():
-    """Perform a scheduled search for Deerwalk"""
+    """Wrapper for scheduled search to run in app context"""
     with app.app_context():
-        try:
-            app.logger.info("Running scheduled search for 'Deerwalk'")
-            result = get_app_info('Deerwalk')
-            
-            if not result.get('success', False):
-                error_msg = result.get('error', 'Unknown error')
-                app.logger.error(f"Error in scheduled search: {error_msg}")
-                return
-                
-            # Log successful search
-            app.logger.info(f"Successfully fetched data for: {result.get('app', {}).get('title', 'Unknown App')}")
-            
-            # Log installs information
-            if 'app' in result:
-                app_data = result['app']
-                installs = app_data.get('installs', 'N/A')
-                real_installs = app_data.get('realInstalls', 'N/A')
-                score = app_data.get('score', 'N/A')
-                
-                app.logger.info(
-                    f"App Stats - Installs: {installs}, "
-                    f"Real Installs: {real_installs}, "
-                    f"Rating: {score}"
-                )
-                
-        except Exception as e:
-            app.logger.error(f"Error in scheduled search: {str(e)}", exc_info=True)
-        finally:
-            # Log next scheduled run time
-            next_run = datetime.now() + timedelta(hours=2)
-            app.logger.info(f"Next scheduled search at: {next_run}")
+        success, message = perform_search()
+        if not success:
+            app.logger.error(f"Scheduled search failed: {message}")
+        # Log next scheduled run time
+        next_run = datetime.now() + timedelta(hours=2)
+        app.logger.info(f"Next scheduled search at: {next_run}")
+
+@app.route('/manual_search', methods=['POST'])
+@password_required
+def manual_search():
+    """Endpoint for manually triggering a search with password protection"""
+    if 'password' not in request.form or request.form['password'] != config.PASSWORD:
+        return jsonify({
+            'success': False,
+            'error': 'Incorrect or missing password'
+        }), 403
+        
+    success, message = perform_search()
+    
+    if success:
+        return jsonify({
+            'success': True,
+            'message': message,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': message
+        }), 500
 
 # Schedule the job to run every 2 hours
 scheduler.add_job(
