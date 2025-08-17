@@ -16,6 +16,52 @@ from functools import wraps
 # Import configuration
 from config import config
 
+# Define functions first
+def perform_search():
+    """Perform a search for Deerwalk and log the results"""
+    try:
+        app.logger.info("Running search for 'Deerwalk'")
+        result = get_app_info('Deerwalk')
+        
+        if not result.get('success', False):
+            error_msg = result.get('error', 'Unknown error')
+            app.logger.error(f"Error in search: {error_msg}")
+            return False, error_msg
+            
+        # Log successful search
+        app_title = result.get('app', {}).get('title', 'Unknown App')
+        app.logger.info(f"Successfully fetched data for: {app_title}")
+        
+        # Log installs information
+        if 'app' in result:
+            app_data = result['app']
+            installs = app_data.get('installs', 'N/A')
+            real_installs = app_data.get('realInstalls', 'N/A')
+            score = app_data.get('score', 'N/A')
+            
+            app.logger.info(
+                f"App Stats - Installs: {installs}, "
+                f"Real Installs: {real_installs}, "
+                f"Rating: {score}"
+            )
+        
+        return True, "Search completed successfully"
+        
+    except Exception as e:
+        error_msg = f"Error in search: {str(e)}"
+        app.logger.error(error_msg, exc_info=True)
+        return False, error_msg
+
+def scheduled_search():
+    """Wrapper for scheduled search to run in app context"""
+    with app.app_context():
+        success, message = perform_search()
+        if not success:
+            app.logger.error(f"Scheduled search failed: {message}")
+        # Log next scheduled run time
+        next_run = datetime.now() + timedelta(hours=2)
+        app.logger.info(f"Next scheduled search at: {next_run}")
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(config)
