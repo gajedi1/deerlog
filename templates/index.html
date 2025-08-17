@@ -110,121 +110,127 @@
         <div id="result" class="result"></div>
     </div>
     <script>
-        async function searchApp() {
-            const appName = document.getElementById('searchInput').value.trim();
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${message}
+                    <p>If the problem persists, please contact support with the following details:</p>
+                    <ul>
+                        <li>App Name: ${document.getElementById('searchInput').value || 'N/A'}</li>
+                        <li>Time: ${new Date().toLocaleString()}</li>
+                        <li>Error: ${message}</li>
+                    </ul>
+                </div>`;
+        }
+
+        function displayResult(data) {
             const resultDiv = document.getElementById('result');
             
-            if (!appName) {
-                resultDiv.innerHTML = `
-                    <div class="error">
-                        <p>Please enter an app name to search</p>
-                    </div>`;
+            if (data.error) {
+                showError(data.error);
                 return;
             }
             
-            // Show loading state
+            const app = data.app || data; // Handle both formats
+            
             resultDiv.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Searching for "${appName}" on Google Play Store...</p>
+                <div class="app-card">
+                    <div class="app-header">
+                        <img src="${app.icon || 'https://via.placeholder.com/128'}" 
+                             alt="${app.title || 'App Icon'}" 
+                             class="app-icon">
+                        <div class="app-info">
+                            <h2>${app.title || 'N/A'}</h2>
+                            <p class="developer">${app.developer || 'N/A'}</p>
+                            ${app.score ? `
+                                <div class="rating">
+                                    <span class="score">${app.score.toFixed(1)}</span>
+                                    <div class="stars">
+                                        ${'★'.repeat(Math.floor(app.score))}${app.score % 1 >= 0.5 ? '½' : ''}
+                                    </div>
+                                    <span class="ratings-count">${(app.ratings || 0).toLocaleString()} ratings</span>
+                                </div>
+                            ` : ''}
+                            <div class="installs">${app.installs || 'N/A'}</div>
+                            <a href="${app.url || '#'}" target="_blank" class="play-store-btn">
+                                View on Google Play
+                            </a>
+                        </div>
+                    </div>
+                    
+                    ${app.description ? `
+                        <div class="description">
+                            <h3>Description</h3>
+                            <p>${app.description.replace(/\n/g, '<br>')}</p>
+                        </div>
+                    ` : ''}
                 </div>`;
+        }
+
+        async function searchApp() {
+            const appName = document.getElementById('searchInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            const loadingDiv = document.getElementById('loading');
+            
+            if (!appName) {
+                showError('Please enter an app name');
+                return;
+            }
+            
+            // Show loading, hide previous results
+            loadingDiv.style.display = 'flex';
+            resultDiv.innerHTML = '';
             
             try {
-                let response;
-                try {
-                    const startTime = Date.now();
-                    response = await fetch('/search', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({ app_name: appName }),
-                        signal: AbortSignal.timeout(30000) // 30 second timeout
-                    });
-                    const endTime = Date.now();
-                    console.log(`Request took ${endTime - startTime}ms`);
-                } catch (networkError) {
-                    if (networkError.name === 'AbortError') {
-                        throw new Error('Request timed out. The server is taking too long to respond.');
-                    } else {
-                        throw new Error('Could not connect to the server. Please check your internet connection and try again.');
-                    }
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ app_name: appName })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to fetch app data');
                 }
-
-                // Check response status first
-                if (!response.ok) {
-                    const contentType = response.headers.get('content-type') || '';
-                    
-                    // Handle HTML error pages
-                    if (contentType.includes('text/html')) {
-                        const errorText = await response.text();
-                        console.error('HTML error response:', errorText.substring(0, 200));
-                        throw new Error('Server error occurred. Please try again later.');
-                    }
-                    
-                    // Try to get JSON error if available
-                    try {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || `Server error: ${response.status}`);
-                    } catch (e) {
-                        throw new Error(`Server error: ${response.status} ${response.statusText}`);
-                    }
-                }
-
-                // Parse JSON response
-                let data;
-                try {
-                    data = await response.json();
-                } catch (jsonError) {
-                    console.error('JSON parse error:', jsonError);
-                    throw new Error('Invalid response from server. Please try again.');
-                }
-
-                // Check if we have valid data
-                if (!data || typeof data !== 'object') {
-                    throw new Error('Invalid data received from server');
-                }
-
-                // Handle API errors in the response
+                
                 displayResult(data);
                 
             } catch (error) {
                 console.error('Search error:', error);
-                let errorMessage = error.message || 'An unknown error occurred';
-                
-                // Clean up error message
-                let displayMessage = errorMessage;
-                if (displayMessage.includes('<!DOCTYPE') || displayMessage.includes('<html>')) {
-                    displayMessage = 'Server returned an error. Please try again later.';
-                }
-                
-                // Remove any HTML tags from the error message
-                displayMessage = displayMessage.replace(/<[^>]*>?/gm, '');
-                
-                resultDiv.innerHTML = `
-                    <div class="error">
-                        <p><strong>Error:</strong> ${displayMessage}</p>
-                        <p>If the problem persists, please contact support with the following details:</p>
-                        <ul>
-                            <li>App Name: ${appName || 'N/A'}</li>
-                            <li>Time: ${new Date().toLocaleString()}</li>
-                            <li>Error: ${displayMessage.substring(0, 100)}${displayMessage.length > 100 ? '...' : ''}</li>
-                        </ul>
-                    </div>`;
+                showError(error.message || 'Failed to fetch app data');
+            } finally {
+                loadingDiv.style.display = 'none';
             }
         }
-        
-        // Function to search for Deerwalk Learning Center
+
+        // Function to search for Deerwalk specifically
         function searchDeerwalk() {
-            document.getElementById('searchInput').value = 'Deerwalk';
+            const searchInput = document.getElementById('searchInput');
+            searchInput.value = 'Deerwalk';
             searchApp();
         }
 
-        // Allow searching with Enter key
+        // Add event listener for Enter key
         document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 searchApp();
+            }
+        });
+    </script>
+    <div id="loading" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>Searching the Play Store...</p>
+    </div>
+    
+    <footer style="text-align: center; margin-top: 30px; padding: 20px; color: #666; font-size: 14px;">
+        Made by Samir Ghimire
+    </footer>
+</body>
+</html>
             }
         });
     </script>
