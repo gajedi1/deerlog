@@ -16,7 +16,6 @@ from functools import wraps
 # Import configuration
 from config import config
 
-# Define functions first
 def perform_search():
     """Perform a search for Deerwalk and log the results"""
     try:
@@ -67,19 +66,21 @@ def create_app():
     app.config.from_object(config)
     app.secret_key = config.SECRET_KEY
     
-    # Initialize scheduler
-    scheduler = BackgroundScheduler()
-    scheduler.start()
-    atexit.register(lambda: scheduler.shutdown())
-    
-    # Schedule the job to run every 2 hours
-    scheduler.add_job(
-        scheduled_search,
-        IntervalTrigger(hours=2),
-        id='scheduled_search',
-        name='Run scheduled search',
-        replace_existing=True
-    )
+    # Initialize scheduler only if not in debug mode to avoid duplicate instances
+    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        scheduler = BackgroundScheduler()
+        scheduler.start()
+        atexit.register(lambda: scheduler.shutdown())
+        
+        # Schedule the job to run every 2 hours
+        with app.app_context():
+            scheduler.add_job(
+                scheduled_search,
+                IntervalTrigger(hours=2),
+                id='deerwalk_search',
+                name='Scheduled search for Deerwalk',
+                replace_existing=True
+            )
     
     return app
 
@@ -551,14 +552,7 @@ def manual_search():
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }), 500
 
-# Schedule the job to run every 2 hours
-scheduler.add_job(
-    scheduled_search,
-    IntervalTrigger(hours=2),
-    id='deerwalk_search',
-    name='Scheduled search for Deerwalk',
-    replace_existing=True
-)
+# Scheduler is now initialized in create_app()
 
 if __name__ == '__main__':
     # Create initial logs directory if it doesn't exist
